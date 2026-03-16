@@ -1,0 +1,124 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+    {# Header #}
+    {% include '@Modules/ppvenipak/views/templates/admin/partials/_header.html.twig' %}
+
+    {# Connection Status #}
+    {% include '@Modules/ppvenipak/views/templates/admin/partials/_connection_status.html.twig' %}
+
+    {# Migration Banner (if legacy modules detected) #}
+    {% include '@Modules/ppvenipak/views/templates/admin/partials/_migration_banner.html.twig' %}
+
+    {# Tab Navigation #}
+    <div class="prestapro-tabs">
+        <button type="button" class="prestapro-tabs__tab prestapro-tabs__tab--active" data-tab="tab-general">
+            {{ 'General'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </button>
+        <button type="button" class="prestapro-tabs__tab" data-tab="tab-api">
+            {{ 'API'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </button>
+        <button type="button" class="prestapro-tabs__tab" data-tab="tab-shipping">
+            {{ 'Shipping'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </button>
+        <button type="button" class="prestapro-tabs__tab" data-tab="tab-advanced">
+            {{ 'Advanced'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </button>
+    </div>
+
+    {# Form #}
+    {{ form_start(configurationForm) }}
+
+    {# General Tab #}
+    <div id="tab-general" class="prestapro-tab-content prestapro-tab-content--active">
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'General Settings'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.enabled) }}
+            {{ form_row(configurationForm.courier_name) }}
+            {{ form_row(configurationForm.pickup_name) }}
+            {{ form_row(configurationForm.tracking_url) }}
+        </div>
+    </div>
+
+    {# API Tab #}
+    <div id="tab-api" class="prestapro-tab-content">
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'API Credentials'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.api_user) }}
+            {{ form_row(configurationForm.api_pass) }}
+            {{ form_row(configurationForm.api_id) }}
+            {{ form_row(configurationForm.live_mode) }}
+        </div>
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Sender Address'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.sender_name) }}
+            {{ form_row(configurationForm.sender_company_code) }}
+            {{ form_row(configurationForm.sender_contact) }}
+            {{ form_row(configurationForm.sender_country) }}
+            {{ form_row(configurationForm.sender_city) }}
+            {{ form_row(configurationForm.sender_address) }}
+            {{ form_row(configurationForm.sender_postcode) }}
+            {{ form_row(configurationForm.sender_phone) }}
+            {{ form_row(configurationForm.sender_email) }}
+            {{ form_row(configurationForm.include_sender) }}
+        </div>
+    </div>
+
+    {# Shipping Tab #}
+    <div id="tab-shipping" class="prestapro-tab-content">
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Checkout Fields'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.show_door_code) }}
+            {{ form_row(configurationForm.show_cabinet_no) }}
+            {{ form_row(configurationForm.show_warehouse_no) }}
+            {{ form_row(configurationForm.show_delivery_time) }}
+            {{ form_row(configurationForm.show_call_before) }}
+        </div>
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Return Service'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.enable_return_service) }}
+            {{ form_row(configurationForm.return_days) }}
+        </div>
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Next Working Day Delivery'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.nwd_enabled) }}
+            {{ form_row(configurationForm.nwd10_enabled) }}
+            {{ form_row(configurationForm.nwd12_enabled) }}
+            {{ form_row(configurationForm.nwd8_14_enabled) }}
+            {{ form_row(configurationForm.nwd14_17_enabled) }}
+            {{ form_row(configurationForm.nwd18_22_enabled) }}
+        </div>
+    </div>
+
+    {# Advanced Tab #}
+    <div id="tab-advanced" class="prestapro-tab-content">
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Label Settings'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.label_format) }}
+        </div>
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'COD (Cash on Delivery)'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.cod_modules) }}
+        </div>
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Cron'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.cron_token) }}
+        </div>
+        <div class="prestapro-card">
+            <h3 class="prestapro-card__title">{{ 'Security'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            {{ form_row(configurationForm.disable_passphrase) }}
+        </div>
+    </div>
+
+    {# Submit #}
+    <div class="prestapro-card" style="text-align: right;">
+        <button type="submit" class="btn btn-primary">
+            {{ 'Save'|trans({}, 'Admin.Actions') }}
+        </button>
+    </div>
+
+    {{ form_end(configurationForm) }}
+
+    {# Footer #}
+    {% include '@Modules/ppvenipak/views/templates/admin/partials/_footer.html.twig' %}
+{% endblock %}

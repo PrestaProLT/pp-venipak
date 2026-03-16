@@ -1,0 +1,43 @@
+{% if legacy_modules is defined and legacy_modules|length > 0 %}
+{% for legacy in legacy_modules %}
+<div class="prestapro-migration">
+    <p class="prestapro-migration__title">
+        &#9888; {{ 'Legacy module detected: "%module%" v%version%'|trans({'%module%': legacy.display_name, '%version%': legacy.version}, translation_domain) }}
+    </p>
+    <p class="prestapro-migration__details">
+        {{ 'Matched migration profile: %profile%'|trans({'%profile%': legacy.matched_case}, translation_domain) }}
+        {% if legacy.preview is defined %}
+        <br />
+        {% for table_name, table_info in legacy.preview.tables %}
+            {% if table_info.exists %}
+                &bull; {{ table_name }}: {{ table_info.rows }} {{ 'records'|trans({}, translation_domain) }}<br />
+            {% endif %}
+        {% endfor %}
+        {% if legacy.preview.config_keys is defined %}
+            &bull; {{ legacy.preview.config_keys }} {{ 'configuration keys'|trans({}, translation_domain) }}
+        {% endif %}
+        {% endif %}
+    </p>
+    <div class="prestapro-migration__actions">
+        <button type="button"
+                class="prestapro-migration__btn prestapro-migration__btn--secondary"
+                data-action="preview"
+                data-module="{{ legacy.module_name }}">
+            {{ 'Preview Migration'|trans({}, translation_domain) }}
+        </button>
+        <button type="button"
+                class="prestapro-migration__btn prestapro-migration__btn--primary"
+                data-action="migrate"
+                data-module="{{ legacy.module_name }}">
+            {{ 'Migrate Now'|trans({}, translation_domain) }}
+        </button>
+        <button type="button"
+                class="prestapro-migration__btn prestapro-migration__btn--secondary"
+                data-action="skip"
+                data-module="{{ legacy.module_name }}">
+            {{ 'Skip'|trans({}, translation_domain) }}
+        </button>
+    </div>
+</div>
+{% endfor %}
+{% endif %}

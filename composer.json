@@ -1,0 +1,34 @@
+{
+    "name": "prestapro/pp-venipak",
+    "description": "PrestaPro — Venipak shipping module for PrestaShop 9",
+    "type": "prestashop-module",
+    "license": "AFL-3.0",
+    "authors": [
+        {
+            "name": "PrestaPro",
+            "homepage": "https://prestapro.lt"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "PrestaShop\\Module\\PPVenipak\\": "src/"
+        },
+        "classmap": [
+            "ppvenipak.php"
+        ]
+    },
+    "require": {
+        "php": ">=8.1",
+        "prestapro/pp-common": "^1.0"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/PrestaProLT/pp-common.git"
+        }
+    ],
+    "config": {
+        "prepend-autoloader": false,
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,33 @@
+services:
+    _defaults:
+        public: true
+        autowire: true
+        autoconfigure: true
+
+    PrestaShop\Module\PPVenipak\:
+        resource: '../src/'
+        exclude: '../src/{Entity,Form,Module}'
+
+    # --- Form Type ---
+
+    prestashop.module.ppvenipak.form.configuration_type:
+        class: 'PrestaShop\Module\PPVenipak\Form\ConfigurationFormType'
+        parent: 'form.type.translatable.aware'
+        tags:
+            - { name: form.type }
+
+    # --- Form Data Provider ---
+
+    prestashop.module.ppvenipak.form.configuration_data_provider:
+        class: 'PrestaShop\Module\PPVenipak\Form\ConfigurationFormDataProvider'
+
+    # --- Form Handler ---
+
+    prestashop.module.ppvenipak.form.configuration_handler:
+        class: 'PrestaShop\PrestaShop\Core\Form\Handler'
+        arguments:
+            - '@form.factory'
+            - '@prestashop.core.hook.dispatcher'
+            - '@prestashop.module.ppvenipak.form.configuration_data_provider'
+            - 'PrestaShop\Module\PPVenipak\Form\ConfigurationFormType'
+            - 'PpVenipakConfiguration'

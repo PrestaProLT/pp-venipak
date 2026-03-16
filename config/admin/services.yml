@@ -1,0 +1,3 @@
+# Admin-specific services for ppvenipak module.
+# Currently all services are defined in the main config/services.yml.
+# Add admin-only services here as needed.

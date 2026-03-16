@@ -1,0 +1,15 @@
+ps_ppvenipak_configuration:
+    path: /ppvenipak/configuration
+    methods: [GET, POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\ConfigurationController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_test_connection:
+    path: /ppvenipak/test-connection
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\ConfigurationController::testConnection'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak

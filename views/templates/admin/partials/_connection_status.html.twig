@@ -1,0 +1,19 @@
+<div class="prestapro-status prestapro-status--{{ connection_status|default('unknown') }}">
+    <span>
+        <span class="prestapro-status__indicator"></span>
+        <span class="prestapro-status__text">
+            {% if connection_status == 'connected' %}
+                {{ 'Connected to %carrier% API'|trans({'%carrier%': carrier_name}, translation_domain) }}
+            {% elseif connection_status == 'disconnected' %}
+                {{ 'Not connected to %carrier% API'|trans({'%carrier%': carrier_name}, translation_domain) }}
+            {% else %}
+                {{ 'Connection status unknown — click Test Connection'|trans({}, translation_domain) }}
+            {% endif %}
+        </span>
+    </span>
+    <button type="button"
+            class="prestapro-status__btn"
+            data-test-url="{{ test_connection_url }}">
+        {{ 'Test Connection'|trans({}, translation_domain) }}
+    </button>
+</div>
