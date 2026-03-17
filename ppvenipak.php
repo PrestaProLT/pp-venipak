@@ -9,6 +9,8 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 use PrestaPro\Common\Carrier\AbstractPPCarrier;
 use PrestaPro\Common\Traits\AdminAssetsTrait;
 use PrestaPro\Common\Traits\OrderStateTrait;
+use PrestaShop\Module\PPVenipak\Carrier\VenipakShippingCalculator;
+use PrestaShop\Module\PPVenipak\Hooks\CheckoutHooks;
 use PrestaShop\Module\PPVenipak\Module\Installer;
 use PrestaShop\Module\PPVenipak\Module\Uninstaller;
 
@@ -16,6 +18,7 @@ class PPVenipak extends AbstractPPCarrier
 {
     use OrderStateTrait;
     use AdminAssetsTrait;
+    use CheckoutHooks;
 
     public const MODULE_ADMIN_DOMAIN = 'Modules.Ppvenipak.Admin';
     public const MODULE_SHOP_DOMAIN = 'Modules.Ppvenipak.Shop';
@@ -119,11 +122,37 @@ class PPVenipak extends AbstractPPCarrier
 
     public function getOrderShippingCost($params, $shipping_cost)
     {
+        if (!(bool) Configuration::get('PPVENIPAK_ENABLED')) {
+            return false;
+        }
+
+        $cart = $this->context->cart;
+
+        if (!$cart || !$cart->id) {
+            return false;
+        }
+
+        $calculator = new VenipakShippingCalculator();
+
+        // Check if carriers should be disabled based on product description passphrase
+        if ($calculator->shouldDisableCarriers((int) $cart->id, (int) $this->context->language->id)) {
+            return false;
+        }
+
+        // For pickup carrier, check if terminals are available for the delivery country
+        $carrierId = (int) ($this->id_carrier ?? 0);
+        $carrierKey = $this->getCarrierKey($carrierId);
+
+        if ($carrierKey === 'pickup' && !$calculator->hasAvailableTerminals((int) $cart->id)) {
+            return false;
+        }
+
+        // Pass through PS zone-based pricing
         return $shipping_cost;
     }
 
     public function getOrderShippingCostExternal($params)
     {
-        return false;
+        return $this->getOrderShippingCost($params, 0);
     }
 }

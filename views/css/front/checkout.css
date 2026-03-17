@@ -1,0 +1,447 @@
+/* ==========================================================================
+   PPVenipak Checkout — Pickup Terminal Selector & Courier Extra Fields
+   ========================================================================== */
+
+/* -------------------------------------------------------------------------
+   Pickup Point Selector
+   ------------------------------------------------------------------------- */
+
+.ppvenipak-pickup {
+    padding: 12px 0;
+}
+
+.ppvenipak-pickup__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+/* Search */
+.ppvenipak-pickup__search {
+    margin-bottom: 12px;
+}
+
+.ppvenipak-pickup__search-input {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.ppvenipak-pickup__search-input:focus {
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+}
+
+.ppvenipak-pickup__search-input::placeholder {
+    color: #999;
+}
+
+/* Selected terminal display */
+.ppvenipak-pickup__selected {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #f0faf0;
+    border-left: 4px solid #28a745;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.ppvenipak-pickup__selected-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #28a745;
+    color: #fff;
+    border-radius: 50%;
+}
+
+.ppvenipak-pickup__selected-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.ppvenipak-pickup__selected-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.ppvenipak-pickup__selected-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+    line-height: 1.3;
+}
+
+.ppvenipak-pickup__selected-address {
+    font-size: 0.82rem;
+    color: #666;
+    margin-top: 2px;
+    line-height: 1.3;
+}
+
+.ppvenipak-pickup__change-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #4a90d9;
+    background: transparent;
+    border: 1px solid #4a90d9;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+}
+
+.ppvenipak-pickup__change-btn:hover {
+    background-color: #4a90d9;
+    color: #fff;
+}
+
+/* Selector container (map + list) */
+.ppvenipak-pickup__selector {
+    /* shown/hidden by JS */
+}
+
+/* Map */
+.ppvenipak-pickup__map {
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.ppvenipak-pickup__map .leaflet-popup-content {
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.ppvenipak-pickup__map-select-btn {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #28a745;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background-color 0.15s ease;
+}
+
+.ppvenipak-pickup__map-select-btn:hover {
+    background-color: #218838;
+}
+
+/* Terminal list */
+.ppvenipak-pickup__list {
+    margin-top: 8px;
+}
+
+.ppvenipak-pickup__list-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.ppvenipak-pickup__list-items {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background-color: #fff;
+}
+
+.ppvenipak-pickup__list-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ppvenipak-pickup__list-items::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 3px;
+}
+
+.ppvenipak-pickup__list-items::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.ppvenipak-pickup__list-items::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Terminal list item */
+.ppvenipak-pickup__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ppvenipak-pickup__item:last-child {
+    border-bottom: none;
+}
+
+.ppvenipak-pickup__item:hover {
+    background-color: #f5f9ff;
+}
+
+.ppvenipak-pickup__item--selected {
+    background-color: #e8f5e9;
+}
+
+.ppvenipak-pickup__item-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: #888;
+}
+
+.ppvenipak-pickup__item:hover .ppvenipak-pickup__item-icon {
+    color: #4a90d9;
+}
+
+.ppvenipak-pickup__item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.ppvenipak-pickup__item-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #333;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ppvenipak-pickup__item-address {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 1px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ppvenipak-pickup__item-type {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.ppvenipak-pickup__item-type--pickup {
+    color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.ppvenipak-pickup__item-type--locker {
+    color: #6f42c1;
+    background-color: #f0e8ff;
+}
+
+/* Loading & empty states */
+.ppvenipak-pickup__loading,
+.ppvenipak-pickup__empty {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.ppvenipak-pickup__loading::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-top-color: #4a90d9;
+    border-radius: 50%;
+    animation: ppvenipak-spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes ppvenipak-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Error message */
+.ppvenipak-pickup__error {
+    display: none;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    color: #dc3545;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+/* -------------------------------------------------------------------------
+   Courier Extra Fields
+   ------------------------------------------------------------------------- */
+
+.ppvenipak-courier {
+    padding: 12px 0;
+}
+
+.ppvenipak-courier__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.ppvenipak-courier__field {
+    margin-bottom: 12px;
+}
+
+.ppvenipak-courier__field label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.ppvenipak-courier__input,
+.ppvenipak-courier__select {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.ppvenipak-courier__input:focus,
+.ppvenipak-courier__select:focus {
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+}
+
+.ppvenipak-courier__select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+
+.ppvenipak-courier__field--checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ppvenipak-courier__field--checkbox label {
+    display: inline;
+    margin-bottom: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ppvenipak-courier__checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #4a90d9;
+}
+
+.ppvenipak-courier__field-hint {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 2px;
+}
+
+/* -------------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+    .ppvenipak-pickup__map {
+        height: 250px;
+    }
+
+    .ppvenipak-pickup__list-items {
+        max-height: 200px;
+    }
+
+    .ppvenipak-pickup__selected {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .ppvenipak-pickup__change-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .ppvenipak-pickup__item-name,
+    .ppvenipak-pickup__item-address {
+        white-space: normal;
+    }
+}
+
+@media (max-width: 480px) {
+    .ppvenipak-pickup__map {
+        height: 200px;
+    }
+
+    .ppvenipak-pickup__item {
+        padding: 8px 10px;
+    }
+
+    .ppvenipak-pickup__item-icon {
+        display: none;
+    }
+}
