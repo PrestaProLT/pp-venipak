@@ -1,0 +1,82 @@
+{#
+    Shared admin layout chrome for the PPVenipak module.
+
+    Required parameters:
+      active_tab          — string identifier of the current tab
+      page_title          — heading shown above the tabs
+      page_description    — one-line explanation of what the admin does on this page
+
+    Optional parameters:
+      multistore_blocked  — when true, renders the multistore warning
+      multistore_reason   — optional 'group' (default) or 'shared'. Switches the
+                            warning copy between "pick a shop" and "switch to
+                            All shops" depending on why the page is locked.
+      page_actions        — pre-rendered HTML for the action button row (right-aligned)
+#}
+
+{% set tabs = [
+    { id: 'dashboard',     label: 'Dashboard'|trans({}, 'Modules.Ppvenipak.Admin'),     route: 'ps_ppvenipak_dashboard',
+      icon: '<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>' },
+    { id: 'configuration', label: 'Configuration'|trans({}, 'Modules.Ppvenipak.Admin'), route: 'ps_ppvenipak_configuration',
+      icon: '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.484.484 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.63 8.48a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.07.62-.07.94 0 .33.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32a.49.49 0 0 0 .59.22l2.39-.96c.5.39 1.03.7 1.62.94l.36 2.54c.05.24.25.42.49.42h4c.24 0 .44-.18.49-.42l.36-2.54c.59-.24 1.13-.55 1.62-.94l2.39.96a.49.49 0 0 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5z"/>' },
+    { id: 'carriers',      label: 'Carriers'|trans({}, 'Modules.Ppvenipak.Admin'),      route: 'ps_ppvenipak_carriers',
+      icon: '<path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>' },
+    { id: 'cod',           label: 'COD'|trans({}, 'Modules.Ppvenipak.Admin'),           route: 'ps_ppvenipak_cod',
+      icon: '<path d="M12 1C5.92 1 1 5.92 1 12s4.92 11 11 11 11-4.92 11-11S18.08 1 12 1zm.88 17.76V20h-1.75v-1.29c-1.71-.39-2.93-1.65-3.13-3.21H9c.13 1.13 1.07 1.95 2.5 1.95 1.55 0 1.95-.85 1.95-1.42 0-.83-.4-1.65-2.43-2.21-2.18-.59-3.5-1.43-3.5-3.21 0-1.49 1.22-2.66 2.93-2.96V6h1.75v1.65c1.55.34 2.5 1.5 2.55 2.93h-1.93c-.05-.7-.55-1.5-1.85-1.5-1.27 0-1.92.55-1.92 1.29 0 .65.45 1.31 2.43 1.85 2 .55 3.5 1.39 3.5 3.21 0 1.61-1.21 2.86-2.95 3.33z"/>' },
+    { id: 'order_states',  label: 'Order states'|trans({}, 'Modules.Ppvenipak.Admin'), route: 'ps_ppvenipak_order_states',
+      icon: '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>' },
+    { id: 'orders',        label: 'Orders'|trans({}, 'Modules.Ppvenipak.Admin'),        route: 'ps_ppvenipak_orders',
+      icon: '<path d="M19 7h-3V6a3 3 0 0 0-6 0v1H7c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-7-1c.55 0 1 .45 1 1v0h-2v0c0-.55.45-1 1-1zm6 14H6V9h2v2c0 .55.45 1 1 1s1-.45 1-1V9h4v2c0 .55.45 1 1 1s1-.45 1-1V9h2v11z"/>' },
+    { id: 'manifests',     label: 'Manifests'|trans({}, 'Modules.Ppvenipak.Admin'),     route: 'ps_ppvenipak_manifests',
+      icon: '<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>' },
+    { id: 'terminals',     label: 'Pickup points'|trans({}, 'Modules.Ppvenipak.Admin'), route: 'ps_ppvenipak_terminals',
+      icon: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/>' },
+    { id: 'warehouses',    label: 'Warehouses'|trans({}, 'Modules.Ppvenipak.Admin'),    route: 'ps_ppvenipak_warehouses',
+      icon: '<path d="M22 21V7L12 3 2 7v14h5v-9h10v9h5zm-13 0h2v-3H9v3zm4 0h2v-3h-2v3z"/>' },
+    { id: 'logs',          label: 'Logs'|trans({}, 'Modules.Ppvenipak.Admin'),          route: 'ps_ppvenipak_log',
+      icon: '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm10-7H8v-2h8v2zm0 4H8v-2h8v2z"/>' },
+] %}
+
+{# Load the admin design system directly here so we do not depend on the
+   displayBackOfficeHeader hook firing on Symfony-routed module pages. #}
+<link rel="stylesheet" href="/modules/ppvenipak/views/css/admin/ppvenipak-admin.css?v=1">
+<script src="/modules/ppvenipak/views/js/admin/ppvenipak-admin.js?v=1" defer></script>
+
+<div class="ppv-shell">
+    <nav class="ppv-tabs" role="tablist" aria-label="{{ 'PPVenipak admin sections'|trans({}, 'Modules.Ppvenipak.Admin') }}">
+        {% for tab in tabs %}
+            <a class="ppv-tabs__item{% if active_tab == tab.id %} ppv-tabs__item--active{% endif %}"
+               href="{{ path(tab.route) }}"
+               role="tab"
+               aria-current="{{ active_tab == tab.id ? 'page' : 'false' }}">
+                <svg class="ppv-tabs__icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{{ tab.icon|raw }}</svg>
+                <span>{{ tab.label }}</span>
+            </a>
+        {% endfor %}
+    </nav>
+
+    {% if multistore_blocked|default(false) %}
+        <div class="ppv-multistore-warning" role="alert">
+            {% if multistore_reason|default('group') == 'shared' %}
+                <h4>{{ 'Switch to "All shops" to continue'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                <p>{{ 'Per-store authentication is disabled, so credentials are stored once and shared by every shop. Pick "All shops" in the multistore selector at the top of this page to edit them.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+            {% else %}
+                <h4>{{ 'Pick a specific shop to continue'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                <p>{{ 'Per-store authentication is enabled. Editing module data in "All shops" or a shop group context could overwrite per-shop credentials and warehouse data.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+                <p><strong>{{ 'Use the multistore selector at the top of this page to choose one shop, then return to this section.'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong></p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <header class="ppv-page-header">
+        <div>
+            <h1 class="ppv-page-header__title">{{ page_title }}</h1>
+            {% if page_description|default('') %}
+                <p class="ppv-page-header__description">{{ page_description }}</p>
+            {% endif %}
+        </div>
+        {% if page_actions|default('') %}
+            <div class="ppv-page-header__actions">{{ page_actions|raw }}</div>
+        {% endif %}
+    </header>
+</div>

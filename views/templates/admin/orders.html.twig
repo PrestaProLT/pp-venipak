@@ -1,0 +1,213 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'orders',
+    page_title: 'Venipak orders'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Every PrestaShop order shipped via a Venipak carrier. Filter by status to find shipments that need labels, are awaiting pickup, or have failed in the API.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+
+{% set status_pills = [
+    { id: '',           label: 'All'|trans({}, 'Modules.Ppvenipak.Admin'),                     cls: '' },
+    { id: 'new',        label: 'New'|trans({}, 'Modules.Ppvenipak.Admin'),                     cls: '' },
+    { id: 'registered', label: 'Registered (label generated)'|trans({}, 'Modules.Ppvenipak.Admin'), cls: '' },
+    { id: 'error',      label: 'Error'|trans({}, 'Modules.Ppvenipak.Admin'),                   cls: 'danger' },
+    { id: 'delivered',  label: 'Delivered'|trans({}, 'Modules.Ppvenipak.Admin'),               cls: '' },
+] %}
+{% set query = filters|filter(v => v != '') %}
+
+<div class="ppv-pill-row">
+    {% for pill in status_pills %}
+        {% set link_query = query|merge({status: pill.id})|filter(v => v != '') %}
+        <a class="ppv-pill{% if pill.cls %} ppv-pill--{{ pill.cls }}{% endif %}{% if filters.status == pill.id %} ppv-pill--active{% endif %}"
+           href="{{ path('ps_ppvenipak_orders', link_query) }}">
+            {{ pill.label }}
+            {% if pill.id and status_counts[pill.id] is defined %}
+                <span class="ppv-pill__count">({{ status_counts[pill.id] }})</span>
+            {% elseif not pill.id %}
+                <span class="ppv-pill__count">({{ total }})</span>
+            {% endif %}
+        </a>
+    {% endfor %}
+</div>
+
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Order list'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Each row is a PrestaShop order with Venipak shipping data. Click the order number to open the standard order page.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body">
+        <form method="get" action="{{ index_url }}" class="ppv-filters">
+            <input type="hidden" name="_token" value="{{ app.request.query.get('_token')|default('') }}">
+            <input type="hidden" name="status" value="{{ filters.status }}">
+            <div class="form-group">
+                <label>{{ 'Country'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select name="country">
+                    <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    {% for cc in ['LT', 'LV', 'EE', 'PL'] %}
+                        <option value="{{ cc }}"{% if filters.country == cc %} selected{% endif %}>{{ cc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ 'Manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select name="manifest">
+                    <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="yes"{% if filters.manifest == 'yes' %} selected{% endif %}>{{ 'Has manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="no"{% if filters.manifest == 'no' %} selected{% endif %}>{{ 'No manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ 'Tracking'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select name="tracking">
+                    <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="yes"{% if filters.tracking == 'yes' %} selected{% endif %}>{{ 'Has tracking'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="no"{% if filters.tracking == 'no' %} selected{% endif %}>{{ 'Awaiting label'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select name="cod">
+                    <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="1"{% if filters.cod == '1' %} selected{% endif %}>{{ 'COD only'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="0"{% if filters.cod == '0' %} selected{% endif %}>{{ 'No COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ 'From'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <input type="date" name="date_from" value="{{ filters.date_from }}">
+            </div>
+            <div class="form-group">
+                <label>{{ 'To'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <input type="date" name="date_to" value="{{ filters.date_to }}">
+            </div>
+            <div class="form-group ppv-filters__search">
+                <label>{{ 'Search reference / manifest / tracking'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <input type="text" name="q" value="{{ filters.q }}">
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">{{ 'Filter'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                <a class="btn btn-secondary" href="{{ path('ps_ppvenipak_orders') }}">{{ 'Reset'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+            </div>
+        </form>
+
+        {% if orders|length == 0 %}
+            <div class="ppv-empty">
+                <h4 class="ppv-empty__title">{{ 'No matching orders'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                <p class="ppv-empty__body">
+                    {% if query|length %}
+                        {{ 'Reset the filters or expand the date range to see more results.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                    {% else %}
+                        {{ 'Once a customer checks out with a Venipak carrier the order will appear here.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                    {% endif %}
+                </p>
+            </div>
+        {% else %}
+            <p style="color: var(--ppv-text-muted); margin: 0 0 var(--ppv-space-2);">{{ 'Showing %shown% of %total%'|trans({'%shown%': orders|length, '%total%': total}, 'Modules.Ppvenipak.Admin') }}</p>
+            <table class="ppv-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Order'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Date'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Status'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Country'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Service'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Tracking'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Weight / Pkgs'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders %}
+                        {% set badge_cls = '' %}
+                        {% if o.status == 'new' %}{% set badge_cls = '' %}
+                        {% elseif o.status == 'registered' %}{% set badge_cls = 'info' %}
+                        {% elseif o.status == 'error' %}{% set badge_cls = 'danger' %}
+                        {% elseif o.status == 'delivered' %}{% set badge_cls = 'success' %}
+                        {% else %}{% set badge_cls = 'warn' %}
+                        {% endif %}
+                        <tr>
+                            <td>
+                                <a href="{{ path('admin_orders_view', { orderId: o.id_order }) }}">{{ o.ps_reference|default('#' ~ o.id_order) }}</a>
+                                <br><small style="color: var(--ppv-text-muted);">#{{ o.id_order }}</small>
+                            </td>
+                            <td><small>{{ o.date_add }}</small></td>
+                            <td>
+                                <span class="ppv-badge{% if badge_cls %} ppv-badge--{{ badge_cls }}{% endif %}">{{ o.status }}</span>
+                                {% if o.status == 'error' and o.error %}
+                                    <br><small style="color: var(--ppv-c-danger); white-space: pre-line;">{{ o.error|slice(0, 200) }}{% if o.error|length > 200 %}…{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ o.country_code }}</td>
+                            <td>
+                                {# Service is derived from the order's CURRENT carrier reference, not from
+                                   stored terminal_info — otherwise switching carrier in admin leaves the
+                                   row showing "Pickup" forever (terminal_info is set at checkout and never
+                                   re-cleared on its own). #}
+                                {% set ref = o.current_carrier_ref|default(0) %}
+                                {% if ref == pickup_ref %}
+                                    <span{% if o._terminal and o._terminal.address is defined %} title="{{ o._terminal.address }}, {{ o._terminal.city }}"{% endif %}>{{ 'Pickup'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                    {% if o._terminal and o._terminal.name is defined %}
+                                        <br><small style="color: var(--ppv-text-muted);">{{ o._terminal.name|slice(0, 40) }}</small>
+                                    {% endif %}
+                                {% elseif ref == courier_ref %}
+                                    {{ 'Courier'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                                {% else %}
+                                    <small style="color: var(--ppv-text-muted);">{{ o.current_carrier_name|default('—') }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if o._tracking|length %}
+                                    {% for tn in o._tracking %}<code>{{ tn }}</code>{% if not loop.last %}<br>{% endif %}{% endfor %}
+                                {% else %}
+                                    <small style="color: var(--ppv-text-muted);">—</small>
+                                {% endif %}
+                                {# Previous-attempt labels (filled when the
+                                   merchant regenerates a label). Strikethrough
+                                   marks them as superseded but still shows the
+                                   original tracking for invoice / customer-
+                                   service reconciliation. #}
+                                {% if o._previous_tracking|default([])|length > 0 %}
+                                    <div style="margin-top: 4px;">
+                                        {% for tn in o._previous_tracking %}
+                                            <code style="text-decoration: line-through; color: var(--ppv-text-muted); font-size: 10px;" title="Previous label">{{ tn }}</code>{% if not loop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if o.manifest_id %}<code>{{ o.manifest_id }}</code>{% else %}<small style="color: var(--ppv-text-muted);">—</small>{% endif %}
+                            </td>
+                            <td>
+                                {{ o.order_weight }} kg
+                                <br><small style="color: var(--ppv-text-muted);">{{ o.packages }} pkg</small>
+                            </td>
+                            <td>{% if o.is_cod %}<span class="ppv-badge ppv-badge--info">{{ o.cod_amount }}</span>{% else %}—{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if page_count > 1 %}
+                <div class="ppv-pagination">
+                    {% if page > 1 %}
+                        <a class="btn btn-secondary btn-sm" href="{{ path('ps_ppvenipak_orders', query|merge({'page': page - 1})) }}">‹ {{ 'Previous'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                    {% endif %}
+                    <span>{{ 'Page %current% of %total%'|trans({'%current%': page, '%total%': page_count}, 'Modules.Ppvenipak.Admin') }}</span>
+                    {% if page < page_count %}
+                        <a class="btn btn-secondary btn-sm" href="{{ path('ps_ppvenipak_orders', query|merge({'page': page + 1})) }}">{{ 'Next'|trans({}, 'Modules.Ppvenipak.Admin') }} ›</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+</div>
+{% endif %}
+{% endblock %}

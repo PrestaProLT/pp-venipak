@@ -5,47 +5,65 @@ declare(strict_types=1);
 namespace PrestaShop\Module\PPVenipak\Form;
 
 use PrestaShopBundle\Form\Admin\Type\SwitchType;
-use PrestaShopBundle\Form\Admin\Type\TranslatableType;
 use PrestaShopBundle\Form\Admin\Type\TranslatorAwareType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class ConfigurationFormType extends TranslatorAwareType
 {
+    /**
+     * Three presentation modes:
+     *   - 'shop'  (default): all per-shop fields, no toggle. Used when
+     *               per-store auth is ON and the merchant has picked a
+     *               specific shop in the multistore selector.
+     *   - 'global_toggle': only the per-store auth toggle. Used when
+     *               per-store auth is ON and the merchant is at All Shops:
+     *               credentials are scoped per shop, so they have no
+     *               business being edited from CONTEXT_ALL — but the toggle
+     *               itself must remain reachable.
+     *   - 'global_full': all fields PLUS the toggle. Used when per-store
+     *               auth is OFF (shared credentials), in which case the
+     *               merchant edits one global set of values from CONTEXT_ALL.
+     */
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'mode' => 'shop',
+        ]);
+        $resolver->setAllowedValues('mode', ['shop', 'global_toggle', 'global_full']);
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $this->buildGeneralGroup($builder);
+        if ($options['mode'] === 'global_toggle') {
+            $this->buildGlobalToggle($builder);
+
+            return;
+        }
+
         $this->buildApiGroup($builder);
         $this->buildShippingGroup($builder);
         $this->buildAdvancedGroup($builder);
+
+        if ($options['mode'] === 'global_full') {
+            $this->buildGlobalToggle($builder);
+        }
     }
 
-    private function buildGeneralGroup(FormBuilderInterface $builder): void
+    private function buildGlobalToggle(FormBuilderInterface $builder): void
     {
-        $builder
-            ->add('enabled', SwitchType::class, [
-                'label' => $this->trans('Enabled', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('courier_name', TranslatableType::class, [
-                'label' => $this->trans('Courier carrier name', 'Modules.Ppvenipak.Admin'),
-                'type' => TextType::class,
-                'required' => false,
-            ])
-            ->add('pickup_name', TranslatableType::class, [
-                'label' => $this->trans('Pickup point carrier name', 'Modules.Ppvenipak.Admin'),
-                'type' => TextType::class,
-                'required' => false,
-            ])
-            ->add('tracking_url', TextType::class, [
-                'label' => $this->trans('Tracking URL', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-                'help' => $this->trans('Use {tracking_number} as placeholder.', 'Modules.Ppvenipak.Admin'),
-                'empty_data' => 'https://www.venipak.lt/track/?trackingNumber={tracking_number}',
-            ]);
+        $builder->add('store_auth_mode', SwitchType::class, [
+            'label' => $this->trans('Per-store authentication', 'Modules.Ppvenipak.Admin'),
+            'required' => false,
+            'help' => $this->trans(
+                'When enabled, API credentials, checkout fields and the return-service window are stored per shop. Disable to share a single set of credentials across every shop.',
+                'Modules.Ppvenipak.Admin'
+            ),
+        ]);
     }
 
     private function buildApiGroup(FormBuilderInterface $builder): void
@@ -57,8 +75,8 @@ class ConfigurationFormType extends TranslatorAwareType
             ])
             ->add('api_pass', PasswordType::class, [
                 'label' => $this->trans('API Password', 'Modules.Ppvenipak.Admin'),
-                'required' => true,
-                'always_empty' => false,
+                'required' => false,
+                'help' => $this->trans('Leave blank to keep the saved password.', 'Modules.Ppvenipak.Admin'),
             ])
             ->add('api_id', TextType::class, [
                 'label' => $this->trans('API ID', 'Modules.Ppvenipak.Admin'),
@@ -69,53 +87,6 @@ class ConfigurationFormType extends TranslatorAwareType
                 'label' => $this->trans('Live mode', 'Modules.Ppvenipak.Admin'),
                 'required' => false,
                 'help' => $this->trans('Disable for test/sandbox mode.', 'Modules.Ppvenipak.Admin'),
-            ])
-            ->add('sender_name', TextType::class, [
-                'label' => $this->trans('Sender name', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_company_code', TextType::class, [
-                'label' => $this->trans('Sender company code', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_contact', TextType::class, [
-                'label' => $this->trans('Sender contact person', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_country', ChoiceType::class, [
-                'label' => $this->trans('Sender country', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-                'choices' => [
-                    'Lithuania' => 'LT',
-                    'Latvia' => 'LV',
-                    'Estonia' => 'EE',
-                    'Poland' => 'PL',
-                ],
-            ])
-            ->add('sender_city', TextType::class, [
-                'label' => $this->trans('Sender city', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_address', TextType::class, [
-                'label' => $this->trans('Sender address', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_postcode', TextType::class, [
-                'label' => $this->trans('Sender postcode', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_phone', TextType::class, [
-                'label' => $this->trans('Sender phone', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('sender_email', TextType::class, [
-                'label' => $this->trans('Sender email', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('include_sender', SwitchType::class, [
-                'label' => $this->trans('Include sender in shipments', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-                'help' => $this->trans('Include sender info in API shipment requests.', 'Modules.Ppvenipak.Admin'),
             ]);
     }
 
@@ -151,35 +122,13 @@ class ConfigurationFormType extends TranslatorAwareType
                 'required' => false,
                 'help' => $this->trans('Number of days for return label validity.', 'Modules.Ppvenipak.Admin'),
                 'empty_data' => '14',
-            ])
-            ->add('nwd_enabled', SwitchType::class, [
-                'label' => $this->trans('Enable next working day delivery', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('nwd10_enabled', SwitchType::class, [
-                'label' => $this->trans('NWD delivery by 10:00', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('nwd12_enabled', SwitchType::class, [
-                'label' => $this->trans('NWD delivery by 12:00', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('nwd8_14_enabled', SwitchType::class, [
-                'label' => $this->trans('NWD delivery 08:00-14:00', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('nwd14_17_enabled', SwitchType::class, [
-                'label' => $this->trans('NWD delivery 14:00-17:00', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-            ])
-            ->add('nwd18_22_enabled', SwitchType::class, [
-                'label' => $this->trans('NWD delivery 18:00-22:00', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
             ]);
     }
 
     private function buildAdvancedGroup(FormBuilderInterface $builder): void
     {
+        // store_auth_mode lives in the separate 'global' form mode — it's
+        // a multistore-wide toggle and we only render it in CONTEXT_ALL.
         $builder
             ->add('label_format', ChoiceType::class, [
                 'label' => $this->trans('Label format', 'Modules.Ppvenipak.Admin'),
@@ -193,12 +142,9 @@ class ConfigurationFormType extends TranslatorAwareType
                 'label' => $this->trans('Disable passphrase', 'Modules.Ppvenipak.Admin'),
                 'required' => false,
                 'help' => $this->trans('Optional passphrase to disable the module without uninstalling.', 'Modules.Ppvenipak.Admin'),
-            ])
-            ->add('cod_modules', TextType::class, [
-                'label' => $this->trans('COD payment modules', 'Modules.Ppvenipak.Admin'),
-                'required' => false,
-                'help' => $this->trans('Comma-separated list of payment module names considered as COD.', 'Modules.Ppvenipak.Admin'),
-                'empty_data' => 'ps_cashondelivery',
             ]);
+        // Cron security token used to live here — moved to the Order states
+        // tab where it is shown alongside the ready-to-paste cron URL and
+        // crontab line, so merchants don't have to assemble it themselves.
     }
 }

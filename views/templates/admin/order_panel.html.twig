@@ -1,0 +1,310 @@
+{# Status -> Bootstrap badge class. Mirrors PrestaShop's order-status badges
+   so the panel reads consistently with the rest of the page. #}
+{% set status_badge = {
+    'new':              'secondary',
+    'registered':       'primary',
+    'in_transit':       'info',
+    'at terminal':      'info',
+    'at_pickup_point':  'warning',
+    'out for delivery': 'warning',
+    'delivered':        'success',
+    'error':            'danger',
+}[venipak_order.status]|default('secondary') %}
+
+{% set shipment_editable = venipak_order.status == 'new' or venipak_order.status == 'error' %}
+
+<div class="card" id="ppvenipak-order-panel"
+     data-id-order="{{ id_order }}"
+     data-country-code="{{ venipak_order.country_code|default('') }}"
+     data-urls='{{ urls|json_encode }}'>
+    <div class="card-header">
+        <h3 class="card-header-title">
+            <img src="/modules/ppvenipak/logo.png" alt="" width="20" height="20" style="vertical-align: -4px; margin-right: 6px;">
+            Venipak Shipping
+        </h3>
+    </div>
+
+    {# Inline alerts for label-gen errors and warehouse pre-flight problems —
+       use PrestaShop's standard Bootstrap alert classes. #}
+    {% if venipak_order.error %}
+        <div class="alert alert-danger m-3" style="white-space: pre-line;">
+            {{ venipak_order.error }}
+        </div>
+    {% endif %}
+
+    {% if warehouse is defined and warehouse and warehouse.missing_fields|length > 0 %}
+        <div class="alert alert-warning m-3">
+            <strong>
+                {% if warehouse.exists %}Warehouse needs setup{% else %}No warehouse configured{% endif %}
+            </strong>
+            {% if warehouse.exists %}
+                <p class="mb-2">
+                    Warehouse <strong>“{{ warehouse.name }}”</strong> is missing required fields:
+                    <strong>{{ warehouse.missing_fields|join(', ') }}</strong>.
+                </p>
+            {% else %}
+                <p class="mb-2">
+                    Add at least one warehouse before generating labels — Venipak will reject the shipment otherwise.
+                </p>
+            {% endif %}
+            {% if warehouse.edit_url %}
+                <a href="{{ warehouse.edit_url }}" class="btn btn-sm btn-warning">
+                    {% if warehouse.exists %}Edit warehouse{% else %}Open Warehouses tab{% endif %}
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <tbody>
+                <tr>
+                    <th style="width: 35%;">Status</th>
+                    <td class="text-right">
+                        <span class="badge badge-{{ status_badge }} text-uppercase">
+                            {{ venipak_order.status }}
+                        </span>
+                        {% if venipak_order.attempt_count|default(1) > 1 %}
+                            <small class="text-muted ml-2" title="Number of label attempts for this order">
+                                attempt #{{ venipak_order.attempt_count }}
+                            </small>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Type</th>
+                    <td class="text-right">
+                        {{ venipak_order.is_pickup ? 'Pickup Point' : 'Courier' }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Weight</th>
+                    <td class="text-right">
+                        {% if shipment_editable %}
+                            <div class="input-group input-group-sm" style="max-width: 140px; margin-left: auto;">
+                                <input type="number"
+                                       id="ppvenipak-weight-input"
+                                       class="form-control text-right"
+                                       min="0.001" max="999" step="0.001"
+                                       value="{{ venipak_order.order_weight|number_format(3, '.', '') }}">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">kg</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            {{ venipak_order.order_weight|number_format(3) }} kg
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Packages</th>
+                    <td class="text-right">
+                        {% if shipment_editable %}
+                            <input type="number"
+                                   id="ppvenipak-packages-input"
+                                   class="form-control form-control-sm text-right"
+                                   min="1" max="99" step="1"
+                                   value="{{ venipak_order.packages }}"
+                                   style="max-width: 80px; margin-left: auto;">
+                        {% else %}
+                            {{ venipak_order.packages }}
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>COD</th>
+                    <td class="text-right">
+                        {% if shipment_editable %}
+                            <div class="d-flex justify-content-end align-items-center" style="gap: 8px;">
+                                <span id="ppvenipak-cod-amount">
+                                    {% if venipak_order.is_cod %}
+                                        € {{ venipak_order.cod_amount|number_format(2) }}
+                                    {% else %}
+                                        <span class="text-muted">disabled</span>
+                                    {% endif %}
+                                </span>
+                                <input type="checkbox"
+                                       id="ppvenipak-cod-input"
+                                       class="form-check-input position-static m-0"
+                                       {{ venipak_order.is_cod ? 'checked' : '' }}>
+                            </div>
+                        {% elseif venipak_order.is_cod %}
+                            € {{ venipak_order.cod_amount|number_format(2) }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                {% if venipak_order.tracking_numbers|length > 0 %}
+                <tr>
+                    <th>
+                        Tracking
+                        {% if venipak_order.attempt_count|default(1) > 1 %}
+                            <br><small class="text-muted">attempt #{{ venipak_order.attempt_count }}</small>
+                        {% endif %}
+                    </th>
+                    <td class="text-right">
+                        {% for tn in venipak_order.tracking_numbers %}
+                            <a href="{{ tracking_base_url }}{{ tn }}" target="_blank" rel="noopener">
+                                <code>{{ tn }}</code>
+                            </a>{% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if venipak_order.manifest_id %}
+                <tr>
+                    <th>Manifest</th>
+                    <td class="text-right">
+                        <a href="{{ urls.manifests }}#manifest-{{ venipak_order.manifest_id }}"
+                           title="Open in Manifests tab">
+                            <code>{{ venipak_order.manifest_id }}</code>
+                        </a>
+                        {% if manifest and manifest.closed %}
+                            <span class="badge badge-secondary">Closed</span>
+                        {% elseif manifest %}
+                            <span class="badge badge-warning">Open</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if manifest and manifest.arrival_from %}
+                <tr>
+                    <th>Courier pickup</th>
+                    <td class="text-right">
+                        {{ manifest.arrival_from|date('H:i') }} – {{ manifest.arrival_to|date('H:i') }}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        {# Pickup-point info — shown directly under the table on a tinted
+           background so it's visually grouped with the shipment data. When the
+           shipment is still editable (no label yet) the merchant can change the
+           pickup point via the searchable picker below. #}
+        {% if venipak_order.is_pickup %}
+            <div class="px-3 py-3" style="background: #f7f9fc; border-top: 1px solid #e9ecef;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-uppercase text-muted font-weight-bold">Pickup Point</small>
+                    {% if shipment_editable %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                                data-action="toggle-terminal-picker">
+                            <i class="material-icons" style="font-size: 16px; vertical-align: -3px;">edit_location</i>
+                            Change
+                        </button>
+                    {% endif %}
+                </div>
+
+                <div class="mt-1" id="ppvenipak-terminal-current">
+                    {% if venipak_order.terminal_info %}
+                        <strong>{{ venipak_order.terminal_info.display_name|default(venipak_order.terminal_info.name|default('—')) }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            {{ venipak_order.terminal_info.address|default('') }}{% if venipak_order.terminal_info.city|default('') %}, {{ venipak_order.terminal_info.city }}{% endif %}
+                        </small>
+                    {% else %}
+                        <span class="text-muted">No pickup point selected yet.</span>
+                    {% endif %}
+                </div>
+
+                {% if shipment_editable %}
+                    <div id="ppvenipak-terminal-picker" class="mt-2" style="display: none;">
+                        <input type="text" id="ppvenipak-terminal-search"
+                               class="form-control form-control-sm"
+                               placeholder="Search by name, city or address…" autocomplete="off">
+                        <div id="ppvenipak-terminal-results"
+                             style="max-height: 220px; overflow-y: auto; border: 1px solid #e9ecef; border-top: 0; display: none; background: #fff;"></div>
+                        <input type="hidden" id="ppvenipak-terminal-id" value="">
+                        <small class="text-muted d-block mt-1">
+                            Pick a point, then click <strong>Save details</strong> to apply.
+                        </small>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {# Courier-only extras (door code, cabinet number, …). #}
+        {% if not venipak_order.is_pickup and venipak_order.extra_fields %}
+            {% set ef = venipak_order.extra_fields %}
+            {% if ef.door_code or ef.cabinet_number or ef.warehouse_number or ef.delivery_time or ef.carrier_call %}
+                <div class="px-3 py-3" style="background: #f7f9fc; border-top: 1px solid #e9ecef;">
+                    <small class="text-uppercase text-muted font-weight-bold">Courier Details</small>
+                    <table class="table table-sm mb-0 mt-2">
+                        <tbody>
+                            {% if ef.door_code %}<tr><th class="border-0 pl-0">Door code</th><td class="border-0 text-right pr-0">{{ ef.door_code }}</td></tr>{% endif %}
+                            {% if ef.cabinet_number %}<tr><th class="border-0 pl-0">Cabinet</th><td class="border-0 text-right pr-0">{{ ef.cabinet_number }}</td></tr>{% endif %}
+                            {% if ef.warehouse_number %}<tr><th class="border-0 pl-0">Warehouse</th><td class="border-0 text-right pr-0">{{ ef.warehouse_number }}</td></tr>{% endif %}
+                            {% if ef.delivery_time %}<tr><th class="border-0 pl-0">Time</th><td class="border-0 text-right pr-0">{{ ef.delivery_time }}</td></tr>{% endif %}
+                            {% if ef.carrier_call %}<tr><th class="border-0 pl-0">Call before</th><td class="border-0 text-right pr-0">Yes</td></tr>{% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {# Previous label attempts — populated by Regenerate label. Surfaces
+           the original tracking + manifest so audit trails aren't lost. #}
+        {% if venipak_order.previous_attempts|default([])|length > 0 %}
+            <div class="px-3 py-3" style="background: #fef9f5; border-top: 1px solid #f0c674;">
+                <small class="text-uppercase text-muted font-weight-bold">Previous label attempts</small>
+                {% for prev in venipak_order.previous_attempts %}
+                    <div class="mt-2 small">
+                        <span class="text-muted">#{{ prev.attempt }} · {{ prev.archived_at }}</span>
+                        {% for tn in prev.tracking_numbers %}
+                            <a href="{{ tracking_base_url }}{{ tn }}" target="_blank" rel="noopener" class="ml-2">
+                                <code style="text-decoration: line-through;">{{ tn }}</code>
+                            </a>
+                        {% endfor %}
+                        {% if prev.manifest_id %}
+                            <span class="ml-2 text-muted">manifest <code>{{ prev.manifest_id }}</code></span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    {# Action footer — primary actions (Send / Save / Regenerate) on the
+       right; secondary (Print / Refresh) on the left. Matches the layout
+       of native PS order page action footers. #}
+    <div class="card-footer d-flex flex-wrap" style="gap: 6px;">
+        {% if venipak_order.tracking_numbers|length > 0 %}
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="print-label">
+                <i class="material-icons" style="vertical-align: -5px;">print</i> Print Label
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="refresh-tracking">
+                <i class="material-icons" style="vertical-align: -5px;">sync</i> Refresh Tracking
+            </button>
+        {% endif %}
+
+        <span class="ml-auto"></span>
+
+        {% if shipment_editable %}
+            <button type="button" class="btn btn-sm btn-outline-primary" data-action="save-shipment">
+                <i class="material-icons" style="vertical-align: -5px;">save</i> Save details
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" data-action="generate-label">
+                <i class="material-icons" style="vertical-align: -5px;">local_shipping</i> Send to Venipak
+            </button>
+        {% endif %}
+
+        {% if venipak_order.tracking_numbers|length > 0 %}
+            <button type="button" class="btn btn-sm btn-outline-warning"
+                    data-action="regenerate-label"
+                    title="Reset and create a new label for this order (e.g. wrong item shipped). The next label's doc_no will be {{ venipak_order.attempt_count|default(1) + 1 }}.">
+                <i class="material-icons" style="vertical-align: -5px;">refresh</i> Regenerate label
+            </button>
+        {% endif %}
+    </div>
+
+    {# Tracking details (hidden, populated via JS Refresh Tracking action). #}
+    <div class="ppvenipak-panel__tracking-details" id="ppvenipak-tracking-details" style="display: none;"></div>
+</div>

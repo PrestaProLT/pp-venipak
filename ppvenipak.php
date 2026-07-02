@@ -10,6 +10,7 @@ use PrestaPro\Common\Carrier\AbstractPPCarrier;
 use PrestaPro\Common\Traits\AdminAssetsTrait;
 use PrestaPro\Common\Traits\OrderStateTrait;
 use PrestaShop\Module\PPVenipak\Carrier\VenipakShippingCalculator;
+use PrestaShop\Module\PPVenipak\Hooks\AdminHooks;
 use PrestaShop\Module\PPVenipak\Hooks\CheckoutHooks;
 use PrestaShop\Module\PPVenipak\Module\Installer;
 use PrestaShop\Module\PPVenipak\Module\Uninstaller;
@@ -19,6 +20,7 @@ class PPVenipak extends AbstractPPCarrier
     use OrderStateTrait;
     use AdminAssetsTrait;
     use CheckoutHooks;
+    use AdminHooks;
 
     public const MODULE_ADMIN_DOMAIN = 'Modules.Ppvenipak.Admin';
     public const MODULE_SHOP_DOMAIN = 'Modules.Ppvenipak.Shop';
@@ -26,20 +28,20 @@ class PPVenipak extends AbstractPPCarrier
     /** @var string[] */
     public array $hooks = [
         'actionCarrierUpdate',
+        'actionFrontControllerSetMedia',
         'displayCarrierExtraContent',
-        'displayOrderDetail',
-        'displayAdminOrderSide',
-        'actionOrderStatusUpdate',
+        'displayAdminOrderMainBottom',
         'actionValidateOrder',
+        'actionObjectOrderUpdateAfter',
+        'actionPresentPaymentOptions',
         'displayBackOfficeHeader',
-        'actionValidateStepComplete',
     ];
 
     public function __construct()
     {
         $this->name = 'ppvenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.0.0';
+        $this->version = '1.0.9';
         $this->author = 'PrestaPro';
         $this->author_uri = 'https://prestapro.lt/modules/ppvenipak';
         $this->need_instance = 0;
@@ -71,7 +73,7 @@ class PPVenipak extends AbstractPPCarrier
     {
         $router = $this->get('router');
         Tools::redirectAdmin(
-            $router->generate('ps_ppvenipak_configuration')
+            $router->generate('ps_ppvenipak_dashboard')
         );
     }
 
@@ -80,11 +82,24 @@ class PPVenipak extends AbstractPPCarrier
         return 'PPVENIPAK';
     }
 
+    /**
+     * Public wrapper so Installer can call the protected trait method.
+     */
+    public function addOrderState(string $configKey, array $names, string $color): int
+    {
+        return $this->createOrderState($configKey, $names, $color);
+    }
+
     protected function getCarrierDefinitions(): array
     {
+        // PrestaShop substitutes "@" in the URL with the customer's tracking
+        // number when it renders the order detail page.
+        $trackingUrl = 'https://www.venipak.lt/track/?trackingNumber=@';
+
         return [
             'courier' => [
                 'name' => 'Venipak Courier',
+                'url' => $trackingUrl,
                 'delay' => [
                     'en' => '1-3 business days',
                     'lt' => '1-3 darbo dienos',
@@ -97,6 +112,7 @@ class PPVenipak extends AbstractPPCarrier
             ],
             'pickup' => [
                 'name' => 'Venipak Pickup Point',
+                'url' => $trackingUrl,
                 'delay' => [
                     'en' => '2-4 business days',
                     'lt' => '2-4 darbo dienos',

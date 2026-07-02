@@ -1,6 +1,9 @@
 {% if legacy_modules is defined and legacy_modules|length > 0 %}
 {% for legacy in legacy_modules %}
-<div class="prestapro-migration">
+<div class="prestapro-migration" id="ppvenipak-migration-banner"
+     data-preview-url="{{ migration_preview_url }}"
+     data-migrate-url="{{ migration_migrate_url }}"
+     data-skip-url="{{ migration_skip_url }}">
     <p class="prestapro-migration__title">
         &#9888; {{ 'Legacy module detected: "%module%" v%version%'|trans({'%module%': legacy.display_name, '%version%': legacy.version}, translation_domain) }}
     </p>
@@ -10,20 +13,26 @@
         <br />
         {% for table_name, table_info in legacy.preview.tables %}
             {% if table_info.exists %}
-                &bull; {{ table_name }}: {{ table_info.rows }} {{ 'records'|trans({}, translation_domain) }}<br />
+                &bull; {{ table_info.label }}: <strong>{{ table_info.rows }}</strong> {{ 'records'|trans({}, translation_domain) }}<br />
             {% endif %}
         {% endfor %}
         {% if legacy.preview.config_keys is defined %}
-            &bull; {{ legacy.preview.config_keys }} {{ 'configuration keys'|trans({}, translation_domain) }}
+            &bull; <strong>{{ legacy.preview.config_keys }}</strong> {{ 'configuration keys to migrate'|trans({}, translation_domain) }}<br />
+        {% endif %}
+        {% if legacy.preview.already_migrated is defined and legacy.preview.already_migrated > 0 %}
+            &bull; {{ legacy.preview.already_migrated }} {{ 'orders already migrated'|trans({}, translation_domain) }}
         {% endif %}
         {% endif %}
     </p>
+    <div id="ppvenipak-migration-log" style="display: none;">
+        <pre style="max-height: 200px; overflow-y: auto; font-size: 0.8rem; background: #f8f9fa; padding: 0.5rem; border-radius: 4px;"></pre>
+    </div>
     <div class="prestapro-migration__actions">
         <button type="button"
                 class="prestapro-migration__btn prestapro-migration__btn--secondary"
                 data-action="preview"
                 data-module="{{ legacy.module_name }}">
-            {{ 'Preview Migration'|trans({}, translation_domain) }}
+            {{ 'Dry-Run Preview'|trans({}, translation_domain) }}
         </button>
         <button type="button"
                 class="prestapro-migration__btn prestapro-migration__btn--primary"
@@ -40,4 +49,87 @@
     </div>
 </div>
 {% endfor %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var banner = document.getElementById('ppvenipak-migration-banner');
+    if (!banner) return;
+
+    var previewUrl = banner.dataset.previewUrl;
+    var migrateUrl = banner.dataset.migrateUrl;
+    var skipUrl = banner.dataset.skipUrl;
+
+    banner.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        var action = btn.dataset.action;
+
+        if (action === 'preview') {
+            runMigration(btn, true);
+        } else if (action === 'migrate') {
+            if (!confirm('This will migrate all data from mijoravenipak to ppvenipak and disable the old module. Continue?')) return;
+            runMigration(btn, false);
+        } else if (action === 'skip') {
+            skipMigration(btn);
+        }
+    });
+
+    function runMigration(btn, dryRun) {
+        btn.disabled = true;
+        btn.textContent = dryRun ? 'Running dry-run...' : 'Migrating...';
+
+        var body = dryRun ? 'dry_run=1' : '';
+
+        fetch(migrateUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: body
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.textContent = dryRun ? 'Dry-Run Preview' : 'Migrate Now';
+
+            var logDiv = document.getElementById('ppvenipak-migration-log');
+            var pre = logDiv.querySelector('pre');
+            logDiv.style.display = 'block';
+
+            var output = (dryRun ? '=== DRY RUN ===\n' : '=== MIGRATION ===\n');
+            if (data.log) output += data.log.join('\n') + '\n';
+            if (data.errors && data.errors.length) output += '\nERRORS:\n' + data.errors.join('\n');
+            if (data.success) output += '\n✓ ' + (data.message || 'Done');
+            else output += '\n✗ ' + (data.message || 'Failed');
+
+            pre.textContent = output;
+
+            if (data.success && !dryRun) {
+                setTimeout(function() { window.location.reload(); }, 3000);
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.textContent = dryRun ? 'Dry-Run Preview' : 'Migrate Now';
+            alert('Migration request failed: ' + err.message);
+        });
+    }
+
+    function skipMigration(btn) {
+        btn.disabled = true;
+        fetch(skipUrl, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function() {
+            banner.style.display = 'none';
+        })
+        .catch(function() {
+            banner.style.display = 'none';
+        });
+    }
+});
+</script>
 {% endif %}

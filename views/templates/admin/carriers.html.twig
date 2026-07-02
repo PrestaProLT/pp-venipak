@@ -1,0 +1,111 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'carriers',
+    page_title: 'Carriers'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Control the Venipak carriers customers see at checkout: turn the carriers on or off, set per-language display names (PrestaShop only stores a single-language name on the carrier itself), and pick which Venipak delivery windows are offered.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+
+{# Carrier status — quick check of whether PS knows about our two carriers and whether they're active. #}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Carrier status'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Live state of the two PrestaShop carriers this module created. If either is missing, reinstall the module; if disabled, activate it from Shipping → Carriers.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body" style="padding: 0;">
+        {% for key, c in carrier_status.carriers %}
+            <div style="display: flex; flex-wrap: wrap; gap: var(--ppv-space-3); align-items: center; padding: var(--ppv-space-3) var(--ppv-space-4); border-bottom: 1px solid var(--ppv-border-subtle);">
+                <div style="flex: 1; min-width: 220px;">
+                    <strong>{{ c.label }}</strong>
+                    {% if c.exists %}
+                        <br><small style="color: var(--ppv-text-muted); font-family: var(--ppv-font-mono);">
+                            id_carrier: {{ c.id_carrier }} · id_reference: {{ c.reference }}{% if c.name != c.label %} · ps_carrier.name: "{{ c.name }}"{% endif %}
+                        </small>
+                    {% endif %}
+                </div>
+                <div style="display: flex; gap: var(--ppv-space-2); align-items: center;">
+                    {% if not c.exists %}
+                        <span class="ppv-badge ppv-badge--danger">{{ 'Missing'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                        <small style="color: var(--ppv-text-muted);">{{ 'Reinstall the module to recreate'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                    {% elseif not c.active %}
+                        <span class="ppv-badge ppv-badge--warn">{{ 'Disabled in PrestaShop'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                        {% if c.edit_url %}<a class="btn btn-secondary btn-sm" href="{{ c.edit_url }}">{{ 'Activate'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>{% endif %}
+                    {% else %}
+                        <span class="ppv-badge ppv-badge--success">{{ 'Active'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                        {% if not carrier_status.globally_enabled %}
+                            <span class="ppv-badge ppv-badge--warn" title="{{ 'Module-level toggle is OFF'|trans({}, 'Modules.Ppvenipak.Admin') }}">{{ 'Hidden'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                        {% endif %}
+                        {% if c.edit_url %}<a class="btn btn-secondary btn-sm" href="{{ c.edit_url }}">{{ 'Edit'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>{% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+
+        {% set any_missing = false %}
+        {% for c in carrier_status.carriers %}{% if not c.exists %}{% set any_missing = true %}{% endif %}{% endfor %}
+
+        {% if not carrier_status.globally_enabled %}
+            <div style="padding: var(--ppv-space-3) var(--ppv-space-4); background: var(--ppv-c-warn-bg); color: var(--ppv-c-warn); font-size: var(--ppv-text-sm);">
+                <strong>{{ 'Heads-up:'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong>
+                {{ 'The "Enabled" toggle below is OFF, so even active carriers are hidden at checkout. Toggle it on to make them visible.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            </div>
+        {% endif %}
+
+        {% if any_missing %}
+            <div style="padding: var(--ppv-space-3) var(--ppv-space-4); background: var(--ppv-c-danger-bg); color: var(--ppv-c-danger); font-size: var(--ppv-text-sm);">
+                <strong>{{ 'Action needed:'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong>
+                {{ 'One or more carriers are missing from ps_carrier. They will not appear at checkout. Reinstall the module from the Module Manager to recreate them.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{{ form_start(carriersForm, { attr: { 'data-ppv-loading': '' } }) }}
+
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Carrier names'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ '“Enabled” shows or hides the Venipak Courier and Pickup point carriers at checkout (the module itself stays installed). The two name fields below let you set what customers see per shop language — these override PrestaShop’s built-in single-language carrier name from Shipping → Carriers.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(carriersForm.enabled) }}
+        {{ form_row(carriersForm.courier_name) }}
+        {{ form_row(carriersForm.pickup_name) }}
+    </div>
+</div>
+
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Courier delivery windows'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'When a customer picks the Venipak Courier carrier at checkout, a dropdown appears asking when they want the parcel delivered. Tick the windows that should be in that dropdown — the chosen value is sent to Venipak as the shipment\'s delivery_type. Same-day (tswd, tswd17) and Saturday (sat) windows require a separate service agreement with Venipak; leave them off if your contract does not cover them. These options are not used for the Pickup point carrier — pickup parcels follow the locker’s own schedule.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(carriersForm.nwd_enabled) }}
+        {{ form_row(carriersForm.nwd10_enabled) }}
+        {{ form_row(carriersForm.nwd12_enabled) }}
+        {{ form_row(carriersForm.nwd8_14_enabled) }}
+        {{ form_row(carriersForm.nwd14_17_enabled) }}
+        {{ form_row(carriersForm.nwd18_22_enabled) }}
+        {{ form_row(carriersForm.tswd_enabled) }}
+        {{ form_row(carriersForm.tswd17_enabled) }}
+        {{ form_row(carriersForm.sat_enabled) }}
+    </div>
+</div>
+
+<div class="ppv-form-actions">
+    <button type="submit" class="btn btn-primary">{{ 'Save changes'|trans({}, 'Admin.Actions') }}</button>
+    <span style="font-size: var(--ppv-text-sm); color: var(--ppv-text-muted);">
+        {{ 'Carrier names are also editable from Shipping → Carriers, but localized names live here.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+    </span>
+</div>
+
+{{ form_end(carriersForm) }}
+
+</div>
+{% endif %}
+{% endblock %}

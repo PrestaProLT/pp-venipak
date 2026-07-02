@@ -1,0 +1,246 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'manifests',
+    page_title: 'Manifests & pickup queue'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Daily flow: orders earn labels, labels group into a manifest, the manifest is closed when the courier picks the parcels up. This page lists what is waiting and what is in progress.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+
+{# 1. Open manifests #}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Open manifests'|trans({}, 'Modules.Ppvenipak.Admin') }} <span class="ppv-badge">{{ open_manifests|length }}</span></h3>
+        <span class="ppv-card__help">{{ 'A manifest stays open until the courier picks the parcels up. Print the manifest PDF and book a courier from the order page.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body">
+        {% if open_manifests|length == 0 %}
+            <div class="ppv-empty">
+                <p class="ppv-empty__body">{{ 'No open manifests right now.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+            </div>
+        {% else %}
+            <table class="ppv-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Created'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Orders'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Total weight'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Courier window'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Status'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in open_manifests %}
+                        <tr id="manifest-{{ m.manifest_id }}">
+                            <td><code>{{ m.manifest_id }}</code></td>
+                            <td><small>{{ m.date_add }}</small></td>
+                            <td>{{ m.warehouse_name|default('—') }}</td>
+                            <td>{{ m.order_count }}</td>
+                            <td>{% if m.cod_count > 0 %}{{ m.cod_count }}{% else %}—{% endif %}</td>
+                            <td>{{ m.total_weight }} kg</td>
+                            <td>
+                                {% if m.arrival_from and m.arrival_to %}
+                                    <span class="ppv-badge ppv-badge--info">{{ m.arrival_from|slice(11, 5) }}–{{ m.arrival_to|slice(11, 5) }}</span>
+                                    {% if m.call_comment %}<br><small style="color: var(--ppv-text-muted);">{{ m.call_comment }}</small>{% endif %}
+                                {% else %}
+                                    <small style="color: var(--ppv-text-muted);">{{ 'Courier not booked'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                                {% endif %}
+                            </td>
+                            <td><span class="ppv-badge ppv-badge--warn">{{ 'Open'|trans({}, 'Modules.Ppvenipak.Admin') }}</span></td>
+                            <td class="ppv-row-actions">
+                                <a class="btn btn-secondary" href="{{ path('ps_ppvenipak_print_manifest', { manifest_id: m.manifest_id }) }}" target="_blank">{{ 'Print'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                                {% if not (m.arrival_from and m.arrival_to) %}
+                                    <button type="button"
+                                            class="btn btn-info"
+                                            data-action="call-courier"
+                                            data-manifest-id="{{ m.manifest_id }}">
+                                        {{ 'Call Courier'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                                    </button>
+                                {% endif %}
+                                <button type="button"
+                                        class="btn btn-warning"
+                                        data-action="close-manifest"
+                                        data-manifest-id="{{ m.manifest_id }}">
+                                    {{ 'Close Manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+{# Call Courier modal — single shared form, populated with the active
+   manifest_id when the user clicks the row's Call Courier button. #}
+<div id="ppv-courier-modal" class="ppv-modal" style="display: none;" role="dialog" aria-modal="true">
+    <div class="ppv-modal__backdrop" data-action="close-courier-modal"></div>
+    <div class="ppv-modal__panel" role="document">
+        <header class="ppv-modal__header">
+            <h3 class="ppv-modal__title">{{ 'Request courier pickup'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            <button type="button" class="ppv-modal__close" data-action="close-courier-modal" aria-label="Close">&times;</button>
+        </header>
+        <div class="ppv-modal__body">
+            <p class="ppv-modal__hint">
+                {{ 'Choose a 2-hour pickup window. Same-day requests must be sent before 15:00 — book for tomorrow if you are past the cutoff.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            </p>
+            <div class="ppv-modal__row">
+                <label for="ppv-courier-manifest">{{ 'Manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <code id="ppv-courier-manifest"></code>
+            </div>
+            <div class="ppv-modal__row">
+                <label for="ppv-courier-date">{{ 'Pickup date'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <input type="date"
+                       id="ppv-courier-date"
+                       class="form-control form-control-sm"
+                       min="{{ 'now'|date('Y-m-d') }}">
+            </div>
+            <div class="ppv-modal__row">
+                <label for="ppv-courier-from">{{ 'From'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select id="ppv-courier-from" class="form-control form-control-sm">
+                    {% for h in range(8, 20) %}
+                        <option value="{{ h }}">{{ '%02d'|format(h) }}:00</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="ppv-modal__row">
+                <label for="ppv-courier-to">{{ 'To'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select id="ppv-courier-to" class="form-control form-control-sm">
+                    {% for h in range(10, 22) %}
+                        <option value="{{ h }}" {{ h == 17 ? 'selected' : '' }}>{{ '%02d'|format(h) }}:00</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="ppv-modal__row">
+                <label for="ppv-courier-comment">{{ 'Comment'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <input type="text"
+                       id="ppv-courier-comment"
+                       class="form-control form-control-sm"
+                       maxlength="50"
+                       placeholder="{{ 'Max 50 characters'|trans({}, 'Modules.Ppvenipak.Admin') }}">
+            </div>
+        </div>
+        <footer class="ppv-modal__footer">
+            <button type="button" class="btn btn-secondary" data-action="close-courier-modal">
+                {{ 'Cancel'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            </button>
+            <button type="button" class="btn btn-primary" data-action="submit-courier">
+                {{ 'Send Request'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            </button>
+        </footer>
+    </div>
+</div>
+
+<div id="ppv-manifests-notice"></div>
+
+<script>
+    window.ppvManifestsConfig = {
+        urls: {
+            close: {{ path('ps_ppvenipak_close_manifest')|json_encode|raw }},
+            callCourier: {{ path('ps_ppvenipak_call_courier')|json_encode|raw }}
+        }
+    };
+</script>
+<script src="/modules/ppvenipak/views/js/admin/manifests.js?v=1" defer></script>
+
+{# 2. Recently closed #}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Recently closed manifests'|trans({}, 'Modules.Ppvenipak.Admin') }} <span class="ppv-badge ppv-badge--success">{{ closed_manifests|length }}</span></h3>
+        <span class="ppv-card__help">{{ 'History of completed pickups (latest 30). Useful for reconciling Venipak invoices with PrestaShop orders.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body">
+        {% if closed_manifests|length == 0 %}
+            <div class="ppv-empty">
+                <p class="ppv-empty__body">{{ 'No closed manifests yet.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+            </div>
+        {% else %}
+            <table class="ppv-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Manifest'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Closed'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Orders'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Total weight'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in closed_manifests %}
+                        <tr id="manifest-{{ m.manifest_id }}">
+                            <td><code>{{ m.manifest_id }}</code></td>
+                            <td><small>{{ m.date_add }}</small></td>
+                            <td>{{ m.warehouse_name|default('—') }}</td>
+                            <td>{{ m.order_count }}</td>
+                            <td>{% if m.cod_count > 0 %}{{ m.cod_count }}{% else %}—{% endif %}</td>
+                            <td>{{ m.total_weight }} kg</td>
+                            <td class="ppv-row-actions">
+                                <a class="btn btn-secondary" href="{{ path('ps_ppvenipak_print_manifest', { manifest_id: m.manifest_id }) }}" target="_blank">{{ 'Print'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+{# 3. Labels awaiting manifest — diagnostic widget. Surfaces orders that
+   have tracking numbers but ended up without a manifest_id (a rare error
+   state; with the current code it should always read 0). Kept at the
+   bottom because it's not part of the day-to-day flow. #}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Labels awaiting manifest'|trans({}, 'Modules.Ppvenipak.Admin') }} <span class="ppv-badge ppv-badge--warn">{{ awaiting_manifest|length }}</span></h3>
+        <span class="ppv-card__help">{{ 'These orders have tracking numbers from Venipak but are not yet on a manifest. Re-run label generation on the order to attach them, or check the per-order error message if the previous attempt failed.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body">
+        {% if awaiting_manifest|length == 0 %}
+            <div class="ppv-empty">
+                <p class="ppv-empty__body">{{ 'Every label is attached to a manifest.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+            </div>
+        {% else %}
+            <table class="ppv-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Order'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Date'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Country'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Tracking'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Weight'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in awaiting_manifest %}
+                        <tr>
+                            <td><a href="{{ path('admin_orders_view', { orderId: o.id_order }) }}">{{ o.ps_reference|default('#' ~ o.id_order) }}</a></td>
+                            <td><small>{{ o.date_add }}</small></td>
+                            <td>{{ o.country_code }}</td>
+                            <td>{% for tn in o._tracking %}<code>{{ tn }}</code>{% if not loop.last %} {% endif %}{% endfor %}</td>
+                            <td>{{ o.order_weight }} kg</td>
+                            <td class="ppv-row-actions">
+                                <a class="btn btn-secondary" href="{{ path('admin_orders_view', { orderId: o.id_order }) }}">{{ 'Open order'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+</div>
+{% endif %}
+{% endblock %}

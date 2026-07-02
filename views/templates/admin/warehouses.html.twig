@@ -1,0 +1,95 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{% set page_actions %}
+    <a class="btn btn-primary" href="{{ create_url }}">{{ 'Add warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+{% endset %}
+
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'warehouses',
+    page_title: 'Warehouses'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Sender addresses used on shipments and labels. The default warehouse is used when no specific warehouse is set on an order.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+    page_actions: page_actions,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+    <div class="ppv-card">
+        <div class="ppv-card__header">
+            <h3 class="ppv-card__title">{{ 'Warehouse list'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            <span class="ppv-card__help">{{ 'Each shipment needs a sender block; if you operate from more than one location, add them here and pick a default.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+        </div>
+        <div class="ppv-card__body">
+            {% if warehouses|length == 0 %}
+                <div class="ppv-empty">
+                    <h4 class="ppv-empty__title">{{ 'No warehouses yet'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                    <p class="ppv-empty__body">{{ 'Add at least one warehouse before generating shipments. Without a warehouse, label generation will fail.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+                    <a class="btn btn-primary" href="{{ create_url }}">{{ 'Add your first warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                </div>
+            {% else %}
+                <table class="ppv-table">
+                    <thead>
+                        <tr>
+                            {% if show_shop_column|default(false) %}
+                                <th>{{ 'Shop'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            {% endif %}
+                            <th>{{ 'Name'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'Country'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'City'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'Address'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'ZIP'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'Contact'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'Phone'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th>{{ 'Default'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in warehouses %}
+                            <tr>
+                                {% if show_shop_column|default(false) %}
+                                    <td>
+                                        {% if w.id_shop > 0 %}
+                                            <span class="ppv-badge">{{ shop_names[w.id_shop]|default('#' ~ w.id_shop) }}</span>
+                                        {% else %}
+                                            <span class="ppv-badge ppv-badge--info">{{ 'Global'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td>
+                                    <strong>{{ w.name }}</strong>
+                                    {% if w.company_code %}<br><small style="color: var(--ppv-text-muted);">{{ 'Company code'|trans({}, 'Modules.Ppvenipak.Admin') }}: {{ w.company_code }}</small>{% endif %}
+                                </td>
+                                <td>{{ w.country_code }}</td>
+                                <td>{{ w.city }}</td>
+                                <td>{{ w.address }}</td>
+                                <td>{{ w.zip_code }}</td>
+                                <td>{{ w.contact }}</td>
+                                <td>{{ w.phone }}</td>
+                                <td>
+                                    {% if w.is_default %}
+                                        <span class="ppv-badge ppv-badge--primary">{{ 'Default'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                    {% else %}
+                                        <form method="post" action="{{ path('ps_ppvenipak_warehouse_set_default', { id: w.id_ppvenipak_warehouse }) }}" data-ppv-loading style="display:inline;">
+                                            <button type="submit" class="btn btn-link" style="padding: 0; font-size: var(--ppv-text-sm);">{{ 'Set default'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                                <td class="ppv-row-actions">
+                                    <a class="btn btn-secondary" href="{{ path('ps_ppvenipak_warehouse_edit', { id: w.id_ppvenipak_warehouse }) }}">{{ 'Edit'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                                    <form method="post" action="{{ path('ps_ppvenipak_warehouse_delete', { id: w.id_ppvenipak_warehouse }) }}"
+                                          onsubmit="return confirm('{{ 'Delete this warehouse?'|trans({}, 'Modules.Ppvenipak.Admin') }}');">
+                                        <button type="submit" class="btn btn-danger">{{ 'Delete'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

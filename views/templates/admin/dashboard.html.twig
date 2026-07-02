@@ -1,0 +1,172 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{% set page_actions %}
+    <form method="post" action="{{ sync_url }}" data-ppv-loading style="display:inline;">
+        <input type="hidden" name="country" value="ALL">
+        <button type="submit" class="btn btn-secondary">{{ 'Sync all pickup points'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+    </form>
+    <a class="btn btn-primary" href="{{ path('ps_ppvenipak_orders', { tracking: 'no' }) }}">{{ 'Generate labels'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+{% endset %}
+
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'dashboard',
+    page_title: 'Dashboard'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'At-a-glance view of what needs attention: orders awaiting labels, open manifests, pickup-point sync status, and recent API errors.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+    page_actions: page_actions,
+}) }}
+
+{% if not multistore_blocked %}
+
+{# ---- Setup checklist (only when something is missing) ---- #}
+{% set missing_count = (setup.api_creds ? 0 : 1) + (setup.warehouse ? 0 : 1) %}
+{% if missing_count > 0 %}
+<div class="ppv-banner-info">
+    <h4>{{ 'Finish setup'|trans({}, 'Modules.Ppvenipak.Admin') }} <span style="font-weight: 400; color: var(--ppv-text-muted);">({{ missing_count }} {{ 'item(s) left'|trans({}, 'Modules.Ppvenipak.Admin') }})</span></h4>
+    <p>{{ 'A few essentials still need to be configured before you can ship parcels through Venipak.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+    <ul style="margin: 8px 0 0 20px; padding: 0; font-size: 13px;">
+        {% if not setup.api_creds %}
+            <li><a href="{{ path('ps_ppvenipak_configuration') }}">{{ 'Add API credentials'|trans({}, 'Modules.Ppvenipak.Admin') }}</a></li>
+        {% endif %}
+        {% if not setup.warehouse %}
+            <li><a href="{{ path('ps_ppvenipak_warehouses') }}">{{ 'Add a default warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}</a></li>
+        {% endif %}
+        {% if not setup.live_mode %}
+            <li>{{ 'Live mode is off — Venipak calls go to the sandbox until you enable it.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                <a href="{{ path('ps_ppvenipak_configuration') }}">{{ 'Toggle live mode'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>.</li>
+        {% endif %}
+    </ul>
+</div>
+{% endif %}
+
+{# ---- Top-level stat tiles ---- #}
+<section class="ppv-stat-grid">
+    <a class="ppv-stat{% if stats.awaiting_labels > 0 %} ppv-stat--warn{% endif %}"
+       href="{{ path('ps_ppvenipak_orders', { tracking: 'no' }) }}">
+        <p class="ppv-stat__label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 7h-3V6a3 3 0 0 0-6 0v1H7c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-7-1c.55 0 1 .45 1 1H11c0-.55.45-1 1-1z"/></svg>
+            {{ 'Orders awaiting labels'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </p>
+        <p class="ppv-stat__count">{{ stats.awaiting_labels }}</p>
+        {% if stats.error_orders > 0 %}
+            <p class="ppv-stat__detail">{{ '%n% in error state'|trans({'%n%': stats.error_orders}, 'Modules.Ppvenipak.Admin') }}</p>
+        {% else %}
+            <p class="ppv-stat__detail">{{ 'Click to filter the order list.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+        {% endif %}
+    </a>
+
+    <a class="ppv-stat{% if stats.open_manifests > 0 %} ppv-stat--warn{% endif %}"
+       href="{{ path('ps_ppvenipak_manifests') }}">
+        <p class="ppv-stat__label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            {{ 'Open manifests'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </p>
+        <p class="ppv-stat__count">{{ stats.open_manifests }}</p>
+        <p class="ppv-stat__detail">
+            {% if stats.oldest_open_manifest %}
+                {{ 'Oldest opened %date%'|trans({'%date%': stats.oldest_open_manifest|slice(0, 10)}, 'Modules.Ppvenipak.Admin') }}
+            {% else %}
+                {{ 'No manifests waiting for pickup.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            {% endif %}
+        </p>
+    </a>
+
+    <a class="ppv-stat" href="{{ path('ps_ppvenipak_terminals') }}">
+        <p class="ppv-stat__label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+            {{ 'Pickup-point freshness'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </p>
+        <p class="ppv-stat__count">{{ freshness|reduce((carry, f) => carry + f.count, 0) }}</p>
+        <div class="ppv-freshness">
+            {% for f in freshness %}
+                <span class="ppv-freshness__item">
+                    <span class="ppv-freshness__dot ppv-freshness__dot--{{ f.state }}"></span>
+                    {{ f.country }} ({{ f.count }})
+                </span>
+            {% endfor %}
+        </div>
+    </a>
+
+    <a class="ppv-stat{% if not setup.warehouse %} ppv-stat--danger{% endif %}"
+       href="{{ path('ps_ppvenipak_warehouses') }}">
+        <p class="ppv-stat__label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 21V7L12 3 2 7v14h5v-9h10v9h5z"/></svg>
+            {{ 'Default warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </p>
+        {% if default_warehouse %}
+            <p class="ppv-stat__count" style="font-size: var(--ppv-text-md); font-weight: 600; line-height: 1.4;">{{ default_warehouse.name }}</p>
+            <p class="ppv-stat__detail">{{ default_warehouse.country_code }} · {{ default_warehouse.city }} · {{ default_warehouse.zip_code }}</p>
+        {% else %}
+            <p class="ppv-stat__count" style="font-size: var(--ppv-text-md);">{{ 'Not set'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+            <p class="ppv-stat__detail">{{ 'Add a warehouse before generating labels.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+        {% endif %}
+    </a>
+
+    <a class="ppv-stat{% if stats.recent_errors > 0 %} ppv-stat--danger{% endif %}"
+       href="{{ path('ps_ppvenipak_log', { level: 'error' }) }}">
+        <p class="ppv-stat__label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 6l8.5 14h-17L12 8zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+            {{ 'API errors (24h)'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </p>
+        <p class="ppv-stat__count">{{ stats.recent_errors }}</p>
+        <p class="ppv-stat__detail">
+            {% if stats.recent_errors > 0 %}
+                {{ 'Click to inspect.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            {% else %}
+                {{ 'No errors in the last 24h.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            {% endif %}
+        </p>
+    </a>
+
+    <a class="ppv-stat" href="{{ path('ps_ppvenipak_cod') }}">
+        <p class="ppv-stat__label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1C5.92 1 1 5.92 1 12s4.92 11 11 11 11-4.92 11-11S18.08 1 12 1zm.88 17.76V20h-1.75v-1.29c-1.71-.39-2.93-1.65-3.13-3.21H9c.13 1.13 1.07 1.95 2.5 1.95 1.55 0 1.95-.85 1.95-1.42 0-.83-.4-1.65-2.43-2.21-2.18-.59-3.5-1.43-3.5-3.21 0-1.49 1.22-2.66 2.93-2.96V6h1.75v1.65c1.55.34 2.5 1.5 2.55 2.93h-1.93c-.05-.7-.55-1.5-1.85-1.5-1.27 0-1.92.55-1.92 1.29 0 .65.45 1.31 2.43 1.85 2 .55 3.5 1.39 3.5 3.21 0 1.61-1.21 2.86-2.95 3.33z"/></svg>
+            {{ 'COD payment methods'|trans({}, 'Modules.Ppvenipak.Admin') }}
+        </p>
+        <p class="ppv-stat__count">{{ stats.cod_count }}</p>
+        <p class="ppv-stat__detail">
+            {% if stats.cod_count > 0 %}
+                {{ 'Click to manage selection.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            {% else %}
+                {{ 'No COD methods marked. Click to set up.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+            {% endif %}
+        </p>
+    </a>
+</section>
+
+{# ---- Latest errors ---- #}
+{% if latest_errors|length > 0 %}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Latest API errors'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'The five most recent error log entries. Click "View all logs" to filter and drill in.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <table class="ppv-table">
+        <thead>
+            <tr>
+                <th style="width: 140px;">{{ 'When'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                <th style="width: 60px;">{{ 'Code'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                <th style="width: 220px;">{{ 'Source'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                <th>{{ 'Message'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in latest_errors %}
+                <tr>
+                    <td><small>{{ e.date_add }}</small></td>
+                    <td><code>{{ e.error_code|default('—') }}</code></td>
+                    <td><code style="font-size: 11px;">{{ e.source }}</code></td>
+                    <td>{{ e.message|slice(0, 240) }}{% if e.message|length > 240 %}…{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="ppv-card__footer">
+        <a href="{{ path('ps_ppvenipak_log') }}">{{ 'View all logs'|trans({}, 'Modules.Ppvenipak.Admin') }} →</a>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

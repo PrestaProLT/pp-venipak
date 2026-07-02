@@ -1,3 +1,11 @@
+ps_ppvenipak_dashboard:
+    path: /ppvenipak/dashboard
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\DashboardController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
 ps_ppvenipak_configuration:
     path: /ppvenipak/configuration
     methods: [GET, POST]
@@ -13,3 +21,261 @@ ps_ppvenipak_test_connection:
         _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\ConfigurationController::testConnection'
         _legacy_controller: AdminPPVenipak
         _legacy_link: AdminPPVenipak
+
+# --- Phase 4: Admin Order Management ---
+
+ps_ppvenipak_generate_label:
+    path: /ppvenipak/order/generate-label
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::generateLabel'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_print_label:
+    path: /ppvenipak/order/print-label
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::printLabel'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_print_manifest:
+    path: /ppvenipak/order/print-manifest
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::printManifest'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_close_manifest:
+    path: /ppvenipak/order/close-manifest
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::closeManifest'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_call_courier:
+    path: /ppvenipak/order/call-courier
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::callCourier'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_tracking:
+    path: /ppvenipak/order/tracking
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::tracking'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_order_data:
+    path: /ppvenipak/order/data
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::orderData'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_update_shipment:
+    path: /ppvenipak/order/update-shipment
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::updateShipmentDetails'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_regenerate_label:
+    path: /ppvenipak/order/regenerate-label
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::regenerateLabel'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_order_terminals:
+    path: /ppvenipak/order/terminals
+    # POST (search term in the body, not the URL) so Cloudflare's managed WAF
+    # doesn't flag the query string — a GET ?q=<city> was being 403'd on live.
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderController::terminals'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Phase 5: Migration ---
+
+ps_ppvenipak_migration_preview:
+    path: /ppvenipak/migration/preview
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\MigrationController::preview'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_migration_migrate:
+    path: /ppvenipak/migration/migrate
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\MigrationController::migrate'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_migration_skip:
+    path: /ppvenipak/migration/skip
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\MigrationController::skip'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Logs ---
+
+ps_ppvenipak_log:
+    path: /ppvenipak/log
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\LogController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_log_detail:
+    path: /ppvenipak/log/detail
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\LogController::detail'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_log_cleanup:
+    path: /ppvenipak/log/cleanup
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\LogController::cleanup'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Carriers ---
+
+ps_ppvenipak_carriers:
+    path: /ppvenipak/carriers
+    methods: [GET, POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\CarriersController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- COD ---
+
+ps_ppvenipak_cod:
+    path: /ppvenipak/cod
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\CodController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_order_states:
+    path: /ppvenipak/order-states
+    methods: [GET, POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderStatesController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_cod_save:
+    path: /ppvenipak/cod/save
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\CodController::save'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Orders ---
+
+ps_ppvenipak_orders:
+    path: /ppvenipak/orders
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\OrderListController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Manifests / Pickup queue ---
+
+ps_ppvenipak_manifests:
+    path: /ppvenipak/manifests
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\ManifestListController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Pickup points / Terminals ---
+
+ps_ppvenipak_terminals:
+    path: /ppvenipak/terminals
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\TerminalController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_terminals_sync:
+    path: /ppvenipak/terminals/sync
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\TerminalController::sync'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+# --- Warehouses ---
+
+ps_ppvenipak_warehouses:
+    path: /ppvenipak/warehouses
+    methods: [GET]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\WarehouseController::index'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_warehouse_create:
+    path: /ppvenipak/warehouses/new
+    methods: [GET, POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\WarehouseController::create'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
+ps_ppvenipak_warehouse_edit:
+    path: /ppvenipak/warehouses/{id}/edit
+    methods: [GET, POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\WarehouseController::edit'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+    requirements:
+        id: '\d+'
+
+ps_ppvenipak_warehouse_delete:
+    path: /ppvenipak/warehouses/{id}/delete
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\WarehouseController::delete'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+    requirements:
+        id: '\d+'
+
+ps_ppvenipak_warehouse_set_default:
+    path: /ppvenipak/warehouses/{id}/set-default
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\WarehouseController::setDefault'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+    requirements:
+        id: '\d+'

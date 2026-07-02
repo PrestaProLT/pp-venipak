@@ -1,9 +1,23 @@
-<div class="ppvenipak-pickup" data-ajax-url="{$ppvenipak_ajax_url}" data-country="{$ppvenipak_country_code}" data-carrier-id="{$ppvenipak_carrier_id}">
+<div class="ppvenipak-pickup"
+     data-ajax-url="{$ppvenipak_ajax_url}"
+     data-country="{$ppvenipak_country_code}"
+     data-postcode="{$ppvenipak_postcode|escape:'html':'UTF-8'}"
+     data-carrier-id="{$ppvenipak_carrier_id}">
 
-    {* Search bar *}
-    <div class="ppvenipak-pickup__search">
-        <input type="text" class="ppvenipak-pickup__search-input js-ppvenipak-search"
-               placeholder="{l s='Search by city or postcode' d='Modules.Ppvenipak.Shop' mod='ppvenipak'}" />
+    {* Top toolbar — nearest-by-postcode only. Free-text filtering lives in
+       the list search bar above the scrollable list, where it's right next
+       to the rows being filtered. *}
+    <div class="ppvenipak-pickup__toolbar"{if $ppvenipak_selected_terminal} style="display:none"{/if}>
+        <div class="ppvenipak-pickup__nearest">
+            <input type="text" class="ppvenipak-pickup__nearest-input js-ppvenipak-nearest-input"
+                   value="{$ppvenipak_postcode|escape:'html':'UTF-8'}"
+                   placeholder="{l s='Postcode' d='Modules.Ppvenipak.Shop' mod='ppvenipak'}"
+                   maxlength="12" />
+            <button type="button" class="ppvenipak-pickup__nearest-btn js-ppvenipak-nearest-btn">
+                {l s='Find nearest' d='Modules.Ppvenipak.Shop' mod='ppvenipak'}
+            </button>
+            <span class="ppvenipak-pickup__nearest-status js-ppvenipak-nearest-status" aria-live="polite"></span>
+        </div>
     </div>
 
     {* Selected terminal display *}
@@ -25,6 +39,10 @@
 
     {* Terminal list (below map) *}
     <div class="ppvenipak-pickup__list js-ppvenipak-list-wrap" {if $ppvenipak_selected_terminal}style="display:none"{/if}>
+        <div class="ppvenipak-pickup__list-search">
+            <input type="text" class="ppvenipak-pickup__list-search-input js-ppvenipak-list-search"
+                   placeholder="{l s='Filter terminals — name, city or address' d='Modules.Ppvenipak.Shop' mod='ppvenipak'}" />
+        </div>
         <div class="ppvenipak-pickup__list-items js-ppvenipak-list">
             {* Populated via JS *}
         </div>

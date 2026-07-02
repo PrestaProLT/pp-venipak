@@ -10,9 +10,109 @@ use Carrier;
 use Configuration;
 use Country;
 use Db;
+use Validate;
 
 trait CheckoutHooks
 {
+    /**
+     * actionFrontControllerSetMedia hook
+     * Registers the pickup-point selector JS + CSS on checkout pages so the
+     * map, search and terminal list inside displayCarrierExtraContent_pickup
+     * actually work. Loads on order / checkout / order-opc front controllers
+     * only — no point shipping it to product pages.
+     */
+    public function hookActionFrontControllerSetMedia(): void
+    {
+        $controller = $this->context->controller ?? null;
+        if (!$controller) {
+            return;
+        }
+
+        $page = $controller->php_self ?? '';
+        if (!in_array($page, ['order', 'checkout', 'order-opc'], true)) {
+            return;
+        }
+
+        $controller->registerStylesheet(
+            'modules-ppvenipak-checkout',
+            'modules/ppvenipak/views/css/front/checkout.css',
+            ['priority' => 200]
+        );
+
+        $controller->registerJavascript(
+            'modules-ppvenipak-checkout',
+            'modules/ppvenipak/views/js/front/checkout.js',
+            ['priority' => 200]
+        );
+    }
+
+    /**
+     * Server-side filter for the checkout payment-options list.
+     *
+     * Fires from PaymentOptionsFinder::present() before the storefront
+     * controller hands options to any theme template, so filtering here
+     * works identically across Hummingbird / Classic / OneLife / future
+     * themes — no JS, no theme-specific selectors, can't be bypassed by
+     * disabling JavaScript or editing the DOM.
+     *
+     * Removes any payment module listed in PPVENIPAK_COD_MODULES when:
+     *   - the cart's carrier is the Venipak pickup carrier, AND
+     *   - the selected terminal has cod_enabled=0 (Locker, or a Shop the
+     *     merchant hasn't enabled for COD).
+     *
+     * The hook receives `paymentOptions` by reference; we mutate it
+     * directly so the change propagates back to the finder.
+     */
+    public function hookActionPresentPaymentOptions(array &$params): void
+    {
+        if (!isset($params['paymentOptions']) || !is_array($params['paymentOptions'])) {
+            return;
+        }
+
+        $cart = $this->context->cart ?? null;
+        if (!$cart || !Validate::isLoadedObject($cart) || !$cart->id_carrier) {
+            return;
+        }
+
+        $carrier = new Carrier((int) $cart->id_carrier);
+        if (!$carrier->id) {
+            return;
+        }
+
+        $pickupRef = (int) Configuration::get('PPVENIPAK_PICKUP_ID_REF');
+        if ($pickupRef <= 0 || (int) $carrier->id_reference !== $pickupRef) {
+            return; // not a pickup-carrier order — nothing to filter
+        }
+
+        $row = Db::getInstance()->getRow(
+            'SELECT `terminal_info` FROM `' . _DB_PREFIX_ . 'ppvenipak_order`
+             WHERE `id_cart` = ' . (int) $cart->id
+        );
+
+        if (!$row || empty($row['terminal_info'])) {
+            return;
+        }
+
+        $terminal = json_decode((string) $row['terminal_info'], true);
+        if (!is_array($terminal) || (int) ($terminal['cod_enabled'] ?? 0) === 1) {
+            return; // terminal accepts COD — let everything through
+        }
+
+        $codModulesRaw = (string) Configuration::get('PPVENIPAK_COD_MODULES');
+        $codModules = array_values(array_filter(array_map('trim', explode(',', $codModulesRaw))));
+        if (empty($codModules)) {
+            $codModules = ['ps_cashondelivery'];
+        }
+
+        // PaymentOptionsFinder::present() returns the options keyed by
+        // module name, so removal is a direct unset.
+        foreach ($codModules as $module) {
+            if (isset($params['paymentOptions'][$module])) {
+                unset($params['paymentOptions'][$module]);
+            }
+        }
+    }
+
     /**
      * displayCarrierExtraContent hook
      * Renders pickup point selector OR courier extra fields depending on carrier type.
@@ -82,9 +182,9 @@ trait CheckoutHooks
             'order_weight' => $weight,
             'cod_amount' => $codAmount,
             'is_cod' => $isCod ? 1 : 0,
-            'warehouse_id' => $warehouseId,
+            'id_warehouse' => $warehouseId,
             'country_code' => pSQL($country->iso_code),
-            'carrier_ref' => (int) $carrier->id_reference,
+            'id_carrier' => (int) $carrier->id_reference,
         ];
 
         if ($exists) {
@@ -114,6 +214,7 @@ trait CheckoutHooks
         $this->context->smarty->assign([
             'ppvenipak_ajax_url' => $ajaxUrl,
             'ppvenipak_country_code' => $countryCode,
+            'ppvenipak_postcode' => trim((string) $address->postcode),
             'ppvenipak_selected_terminal' => $selectedTerminal,
             'ppvenipak_carrier_id' => (int) ($params['carrier']['id'] ?? 0),
         ]);
@@ -132,17 +233,29 @@ trait CheckoutHooks
         $showDeliveryTime = (bool) Configuration::get('PPVENIPAK_SHOW_DELIVERY_TIME');
         $showCallBefore = (bool) Configuration::get('PPVENIPAK_SHOW_CALL_BEFORE');
 
-        // Build delivery time options from enabled nwd* configs
+        // If the merchant has disabled every courier extra field, the
+        // template would render an empty <div class="ppvenipak-courier">
+        // wrapper. Skip the hook output entirely so the carrier-extra slot
+        // collapses cleanly instead of leaving an empty container.
+        if (!$showDoorCode && !$showCabinetNo && !$showWarehouseNo
+            && !$showDeliveryTime && !$showCallBefore) {
+            return '';
+        }
+
+        // Build delivery time options from enabled config flags
         $timeOptions = [];
-        $nwdMap = [
+        $deliveryTypeMap = [
             'nwd' => 'Anytime',
             'nwd10' => 'Until 10:00',
             'nwd12' => 'Until 12:00',
             'nwd8_14' => '8:00 – 14:00',
             'nwd14_17' => '14:00 – 17:00',
             'nwd18_22' => '18:00 – 22:00',
+            'tswd' => 'Same day',
+            'tswd17' => 'Same day 17:00 – 22:00',
+            'sat' => 'Saturday',
         ];
-        foreach ($nwdMap as $key => $label) {
+        foreach ($deliveryTypeMap as $key => $label) {
             $configKey = 'PPVENIPAK_' . strtoupper($key) . '_ENABLED';
             if (Configuration::get($configKey)) {
                 $timeOptions[$key] = $label;
@@ -201,12 +314,26 @@ trait CheckoutHooks
         return json_decode($row, true) ?: [];
     }
 
+    /**
+     * Resolve the default warehouse for the current cart's shop. Per-shop
+     * scoping means each shop in a multistore setup keeps its own default.
+     * Falls back to the legacy global row (id_shop = 0) so installs that
+     * predate the per-shop UI keep working.
+     */
     private function getDefaultWarehouseId(): int
     {
+        $idShop = (int) ($this->context->shop->id ?? 0);
+
+        // Try the current shop first; fall back to a legacy global default
+        // (id_shop=0) so older installs without per-shop warehouses still
+        // resolve a sender address.
+        // getValue() (via getRow) appends its own "LIMIT 1", so the query must
+        // not include one — a second LIMIT triggers a SQL syntax error.
         return (int) Db::getInstance()->getValue(
-            'SELECT id FROM `' . _DB_PREFIX_ . 'ppvenipak_warehouse`
-             WHERE is_default = 1
-             LIMIT 1'
+            'SELECT `id_ppvenipak_warehouse` FROM `' . _DB_PREFIX_ . 'ppvenipak_warehouse`
+             WHERE `is_default` = 1
+               AND (`id_shop` = ' . $idShop . ' OR `id_shop` = 0)
+             ORDER BY (`id_shop` = ' . $idShop . ') DESC'
         );
     }
 }

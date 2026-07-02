@@ -2,12 +2,62 @@
    PPVenipak Checkout — Pickup Terminal Selector & Courier Extra Fields
    ========================================================================== */
 
+/* The checkout collapses the carrier-extra wrapper with inline
+   `display: none; max-height: 0` and is supposed to expand it on radio
+   selection, but the binding is unreliable on Symfony-routed checkouts.
+   When a delivery option's radio is checked, force the wrapper open so the
+   pickup map / terminal list / courier fields are actually visible. The
+   :has() selector targets the wrapper from any descendant of the checked
+   option; modern browsers (Chrome 105+, Safari 15.4+, Firefox 121+) support
+   it. The vanilla-JS fallback in checkout.js covers older browsers.
+   Both class variants are listed so this holds on Classic-derived themes
+   (js- prefix) and custom themes that drop it. */
+.js-delivery-option:has(input[type="radio"]:checked) .js-carrier-extra-content,
+.delivery-option:has(input[type="radio"]:checked) .carrier-extra-content {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* When the carrier-extra wrapper holds only the picker's "selected" panel,
+   collapse the theme's default padding — the panel already has its own
+   coloured padded box, the wrapper's extra space just opens an awkward gap
+   between the carrier row and the next one. */
+.js-delivery-option .js-carrier-extra-content:has(.ppvenipak-pickup__selected:not([style*="display:none"])):not(:has(.ppvenipak-pickup__map-container:not([style*="display:none"]))),
+.delivery-option .carrier-extra-content:has(.ppvenipak-pickup__selected:not([style*="display:none"])):not(:has(.ppvenipak-pickup__map-container:not([style*="display:none"]))) {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
 /* -------------------------------------------------------------------------
    Pickup Point Selector
    ------------------------------------------------------------------------- */
 
 .ppvenipak-pickup {
-    padding: 12px 0;
+    padding: 8px 0;
+    /* Defensive box-sizing + width clamp so the picker never overflows the
+       checkout column on narrow viewports. Without this the Leaflet map and
+       wide terminal items push the page wide and a horizontal scrollbar
+       appears on phones. */
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* When a terminal is already chosen the picker only renders the green
+   "selected" panel — there's no map, list or toolbar following it. Drop the
+   wrapper padding entirely so the panel sits flush under the carrier title
+   instead of opening a tall empty gap before the next carrier row. */
+.ppvenipak-pickup:has(.js-ppvenipak-selected:not([style*="display:none"])) {
+    padding: 0;
+}
+
+.ppvenipak-pickup *,
+.ppvenipak-pickup *::before,
+.ppvenipak-pickup *::after {
+    box-sizing: border-box;
 }
 
 .ppvenipak-pickup__title {
@@ -17,33 +67,98 @@
     color: #333;
 }
 
-/* Search */
-.ppvenipak-pickup__search {
+/* Toolbar — text search + nearest-by-postcode in a single horizontal row.
+   Inputs share one base style (`__field`) so the theme can't accidentally
+   make one visible and the other invisible. The `!important`s on color +
+   border + background defend against Hummingbird's input resets which
+   otherwise blend the fields into the white background. */
+.ppvenipak-pickup__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 12px;
 }
 
-.ppvenipak-pickup__search-input {
-    display: block;
+.ppvenipak-pickup__nearest {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
+.ppvenipak-pickup__search-input,
+.ppvenipak-pickup__nearest-input {
+    flex: 1 1 0;
+    min-width: 0;
     width: 100%;
-    padding: 10px 12px;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    color: #333;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    height: 40px;
+    padding: 8px 12px !important;
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+    color: #2b2b2b !important;
+    background-color: #fafafa !important;
+    border: 1px solid #b8b8b8 !important;
+    border-radius: 6px !important;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    box-sizing: border-box;
+    box-shadow: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.ppvenipak-pickup__search-input:focus {
-    border-color: #4a90d9;
-    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+.ppvenipak-pickup__search-input:focus,
+.ppvenipak-pickup__nearest-input:focus {
+    border-color: #4a90d9 !important;
+    background-color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.18);
 }
 
-.ppvenipak-pickup__search-input::placeholder {
-    color: #999;
+.ppvenipak-pickup__search-input::placeholder,
+.ppvenipak-pickup__nearest-input::placeholder {
+    color: #888;
+}
+
+.ppvenipak-pickup__nearest-btn {
+    flex: 0 0 auto;
+    height: 40px;
+    padding: 0 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    background-color: #4a90d9;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+
+.ppvenipak-pickup__nearest-btn:hover,
+.ppvenipak-pickup__nearest-btn:focus {
+    background-color: #3a7cc1;
+    outline: none;
+}
+
+.ppvenipak-pickup__nearest-status {
+    flex: 1 1 100%;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #666;
+    min-height: 1em;
+}
+
+.ppvenipak-pickup__nearest-status[data-kind="error"]   { color: #c0392b; }
+.ppvenipak-pickup__nearest-status[data-kind="success"] { color: #1e7e34; }
+.ppvenipak-pickup__nearest-status[data-kind="info"]    { color: #1f6fb2; }
+
+@media (max-width: 640px) {
+    .ppvenipak-pickup__search,
+    .ppvenipak-pickup__nearest {
+        flex: 1 1 100%;
+    }
 }
 
 /* Selected terminal display */
@@ -51,11 +166,14 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 10px 14px;
     background-color: #f0faf0;
     border-left: 4px solid #28a745;
     border-radius: 6px;
-    margin-bottom: 12px;
+    /* No bottom margin — when this is rendered, nothing else follows
+       inside the picker (toolbar/map/list are all hidden). Bottom margin
+       just opens a tall gap before the next carrier row. */
+    margin-bottom: 0;
 }
 
 .ppvenipak-pickup__selected-icon {
@@ -123,12 +241,64 @@
 }
 
 /* Map */
+.ppvenipak-pickup__map-container {
+    max-width: 100%;
+    overflow: hidden;
+}
+
 .ppvenipak-pickup__map {
+    width: 100%;
     height: 300px;
+    max-width: 100%;
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 12px;
     border: 1px solid #e0e0e0;
+    /* Leaflet's tile layer is positioned absolutely; container must be
+       relative + clip to keep wide tiles from spilling out on narrow
+       viewports and triggering horizontal scroll. */
+    position: relative;
+}
+
+/* List-search input (above the scrollable list) — same defensive style as
+   the toolbar inputs so the theme can't hide it. */
+.ppvenipak-pickup__list-search {
+    margin-bottom: 8px;
+}
+
+.ppvenipak-pickup__list-search-input {
+    display: block !important;
+    width: 100%;
+    height: 36px;
+    padding: 6px 10px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+    color: #2b2b2b !important;
+    background-color: #fafafa !important;
+    border: 1px solid #b8b8b8 !important;
+    border-radius: 6px !important;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.ppvenipak-pickup__list-search-input:focus {
+    border-color: #4a90d9 !important;
+    background-color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.18);
+}
+
+/* Distance pill on each terminal item */
+.ppvenipak-pickup__item-distance {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #4a90d9;
+    background: rgba(74, 144, 217, 0.1);
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    margin-left: 4px;
 }
 
 .ppvenipak-pickup__map .leaflet-popup-content {
@@ -281,6 +451,39 @@
     background-color: #f0e8ff;
 }
 
+.ppvenipak-pickup__item-type--shop {
+    color: #c5680a;
+    background-color: #fff1de;
+}
+
+/* COD-availability badge — shown on every list item next to the type pill.
+   Green euro = cash on delivery available; muted/strike-through = not. */
+.ppvenipak-pickup__item-cod {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-right: 4px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 50%;
+    line-height: 1;
+}
+
+.ppvenipak-pickup__item-cod--yes {
+    color: #1e7e34;
+    background-color: #e6f4ea;
+}
+
+.ppvenipak-pickup__item-cod--no {
+    color: #b0b0b0;
+    background-color: #f0f0f0;
+    text-decoration: line-through;
+}
+
+
 /* Loading & empty states */
 .ppvenipak-pickup__loading,
 .ppvenipak-pickup__empty {
@@ -340,6 +543,11 @@
 
 .ppvenipak-courier__field label {
     display: block;
+    /* Classic (and themes derived from it) right-align checkout form labels,
+       which pushes these field labels to the far edge above their inputs.
+       Pin the alignment so the courier fields read left-to-right on any
+       theme instead of inheriting the theme's label default. */
+    text-align: left;
     font-size: 0.82rem;
     font-weight: 500;
     color: #555;
@@ -429,6 +637,19 @@
     .ppvenipak-pickup__item-name,
     .ppvenipak-pickup__item-address {
         white-space: normal;
+        word-break: break-word;
+    }
+
+    /* The terminal item is a flex row by default — on narrow viewports, let
+       the info column shrink instead of pushing the row past 100% width. */
+    .ppvenipak-pickup__item-info {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .ppvenipak-pickup__item-distance {
+        font-size: 0.68rem;
+        padding: 2px 6px;
     }
 }
 

@@ -1,0 +1,200 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'logs',
+    page_title: 'Logs'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Audit trail of every Venipak API interaction (errors, parse failures, transport failures). Click a row to inspect the full request and response.'|trans({}, 'Modules.Ppvenipak.Admin'),
+}) }}
+
+<div class="ppv-shell">
+    <div class="ppv-card">
+        <div class="ppv-card__body">
+            <form method="get" action="{{ index_url }}" class="ppv-filters" style="margin-bottom: var(--ppv-space-3);">
+                <input type="hidden" name="_token" value="{{ app.request.query.get('_token')|default('') }}">
+                <div class="form-group">
+                    <label>{{ 'Level'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <select name="level">
+                        <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                        {% for lvl in levels %}
+                            <option value="{{ lvl }}"{% if filters.level == lvl %} selected{% endif %}>{{ lvl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>{{ 'Source'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <select name="source">
+                        <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                        {% for src in sources %}
+                            <option value="{{ src }}"{% if filters.source == src %} selected{% endif %}>{{ src }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>{{ 'Error code'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="number" name="error_code" value="{{ filters.error_code }}" min="1" style="width: 90px;">
+                </div>
+                <div class="form-group">
+                    <label>{{ 'Order ID'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="number" name="id_order" value="{{ filters.id_order }}" min="1" style="width: 110px;">
+                </div>
+                <div class="form-group">
+                    <label>{{ 'From'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="date" name="date_from" value="{{ filters.date_from }}">
+                </div>
+                <div class="form-group">
+                    <label>{{ 'To'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="date" name="date_to" value="{{ filters.date_to }}">
+                </div>
+                <div class="form-group ppv-filters__search">
+                    <label>{{ 'Search message / endpoint'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="text" name="q" value="{{ filters.q }}">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">{{ 'Filter'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                    <a class="btn btn-secondary" href="{{ index_url }}">{{ 'Reset'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                </div>
+            </form>
+
+            <p style="color: var(--ppv-text-muted); margin: 0 0 var(--ppv-space-2);">{{ 'Showing %shown% of %total% entries.'|trans({'%shown%': logs|length, '%total%': total}, 'Modules.Ppvenipak.Admin') }}</p>
+
+            {% if logs|length == 0 %}
+                <div class="ppv-empty">
+                    <h4 class="ppv-empty__title">{{ 'No log entries match the current filters'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                    <p class="ppv-empty__body">{{ 'Reset filters to see everything, or wait for the next API call.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+                </div>
+            {% else %}
+            <table class="ppv-table">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">{{ 'Date'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th style="width: 80px;">{{ 'Level'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th style="width: 60px;">{{ 'Code'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th style="width: 220px;">{{ 'Source'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Message'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th style="width: 80px;">{{ 'Order'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    {% set badge_cls = log.level == 'error' ? 'danger' : (log.level == 'warning' ? 'warn' : 'info') %}
+                    <tr class="is-clickable" data-log-id="{{ log.id_ppvenipak_log }}">
+                        <td>{{ log.date_add }}</td>
+                        <td><span class="ppv-badge ppv-badge--{{ badge_cls }}">{{ log.level }}</span></td>
+                        <td><code>{{ log.error_code|default('—') }}</code></td>
+                        <td><code style="font-size: 11px;">{{ log.source }}</code><br><small style="color: var(--ppv-text-muted);">{{ log.endpoint }}</small></td>
+                        <td style="max-width: 540px; white-space: pre-line;">
+                            {{ log.message }}
+                            {# Verbatim text(s) from Venipak's response XML.
+                               Pulled out of the structured `context.errors[]`
+                               list so the operator can see what the API
+                               literally said without expanding the row. #}
+                            {% if log.venipak_raw|default([])|length > 0 %}
+                                <div class="ppv-log-raw">
+                                    <span class="ppv-log-raw__label">{{ 'Venipak response'|trans({}, 'Modules.Ppvenipak.Admin') }}:</span>
+                                    {% for err in log.venipak_raw %}
+                                        <code class="ppv-log-raw__line">[{{ err.code|default('—') }}] {{ err.message }}</code>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {# Inline raw payload viewers — collapsed by
+                               default so the table stays scannable, but the
+                               XML lives in the page source so opening it is
+                               instant and works for many rows at once. #}
+                            {% if log.request_body %}
+                                <details class="ppv-log-payload" data-stop-propagation>
+                                    <summary>{{ 'Request'|trans({}, 'Modules.Ppvenipak.Admin') }} <span class="ppv-log-payload__size">({{ log.request_body|length }} chars)</span></summary>
+                                    <pre>{{ log.request_body }}</pre>
+                                </details>
+                            {% endif %}
+                            {% if log.response_body %}
+                                <details class="ppv-log-payload" data-stop-propagation>
+                                    <summary>{{ 'Response'|trans({}, 'Modules.Ppvenipak.Admin') }} <span class="ppv-log-payload__size">({{ log.response_body|length }} chars)</span></summary>
+                                    <pre>{{ log.response_body }}</pre>
+                                </details>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.id_order > 0 ? '#' ~ log.id_order : '' }}</td>
+                    </tr>
+                    <tr class="ppv-log-detail-row" data-detail-for="{{ log.id_ppvenipak_log }}" style="display:none;">
+                        <td colspan="6"><div class="ppv-detail-pane" data-detail-pane>{{ 'Loading…'|trans({}, 'Modules.Ppvenipak.Admin') }}</div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            {% if page_count > 1 %}
+            <div class="ppv-pagination">
+                {% set query = filters|filter(v => v != '') %}
+                {% if page > 1 %}
+                    <a class="btn btn-secondary btn-sm" href="{{ path('ps_ppvenipak_log', query|merge({'page': page - 1})) }}">‹ {{ 'Previous'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                {% endif %}
+                <span>{{ 'Page %current% of %total%'|trans({'%current%': page, '%total%': page_count}, 'Modules.Ppvenipak.Admin') }}</span>
+                {% if page < page_count %}
+                    <a class="btn btn-secondary btn-sm" href="{{ path('ps_ppvenipak_log', query|merge({'page': page + 1})) }}">{{ 'Next'|trans({}, 'Modules.Ppvenipak.Admin') }} ›</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="ppv-card__footer">
+            <form method="post" action="{{ cleanup_url }}"
+                  onsubmit="return confirm('{{ 'Delete log entries older than the chosen retention?'|trans({}, 'Modules.Ppvenipak.Admin') }}');"
+                  style="display: flex; gap: var(--ppv-space-2); align-items: end; margin: 0;"
+                  data-ppv-loading>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: var(--ppv-text-xs); color: var(--ppv-text-muted); margin-bottom: 2px;">{{ 'Retention days (0 = clear all)'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="number" name="retention_days" value="30" min="0" style="width: 110px; padding: var(--ppv-space-1) var(--ppv-space-2); border: 1px solid var(--ppv-border-strong); border-radius: var(--ppv-radius-sm);">
+                </div>
+                <button type="submit" class="btn btn-danger">{{ 'Clean up'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var detailUrl = {{ detail_url|json_encode|raw }};
+    var cache = {};
+
+    // Prevent clicks inside the inline payload viewers (and any other
+    // interactive child) from bubbling up to the row and toggling the
+    // AJAX-loaded context detail.
+    document.querySelectorAll('.ppv-table tbody tr[data-log-id] details').forEach(function (d) {
+        d.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+
+    document.querySelectorAll('.ppv-table tbody tr[data-log-id]').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+            // Ignore bubbling clicks that came from a <details>/<summary>
+            // inside the row — those toggle their own payload, not the row.
+            if (e.target.closest('details')) return;
+            var id = row.dataset.logId;
+            var detailRow = document.querySelector('.ppv-log-detail-row[data-detail-for="' + id + '"]');
+            if (!detailRow) return;
+            if (detailRow.style.display === 'table-row') { detailRow.style.display = 'none'; return; }
+            document.querySelectorAll('.ppv-log-detail-row').forEach(function (r) { r.style.display = 'none'; });
+            detailRow.style.display = 'table-row';
+            var pane = detailRow.querySelector('[data-detail-pane]');
+            if (cache[id]) { pane.innerHTML = cache[id]; return; }
+            pane.textContent = 'Loading…';
+            fetch(detailUrl + '?id=' + encodeURIComponent(id), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success) { pane.textContent = data.message || 'Failed to load detail.'; return; }
+                    var l = data.log;
+                    var html = '';
+                    if (l.request_body)  html += '<h5>Request</h5><pre>' + esc(l.request_body) + '</pre>';
+                    if (l.response_body) html += '<h5>Response</h5><pre>' + esc(l.response_body) + '</pre>';
+                    if (l.context)       html += '<h5>Context</h5><pre>' + esc(typeof l.context === 'string' ? l.context : JSON.stringify(l.context, null, 2)) + '</pre>';
+                    if (!html) html = '<em>No request/response/context captured.</em>';
+                    cache[id] = html; pane.innerHTML = html;
+                })
+                .catch(function (err) { pane.textContent = 'Error: ' + err.message; });
+        });
+    });
+
+    function esc(s) { var div = document.createElement('div'); div.textContent = String(s == null ? '' : s); return div.innerHTML; }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+/*
+ * PPVenipak — Admin Order Panel
+ *
+ * The new template uses Bootstrap 4 / PrestaShop-native classes (.card,
+ * .table, .badge, .input-group, .alert, …), so this file is intentionally
+ * thin. Only behaviours that aren't covered by PS's bundled styles live
+ * here: AJAX notice positioning, the spinner used by setLoading(), the
+ * tracking-history pane that the Refresh Tracking button populates, and
+ * a tiny tweak to keep the COD checkbox vertically aligned.
+ */
+
+#ppvenipak-order-panel .badge {
+    font-size: 0.78rem;
+    padding: 4px 8px;
+    letter-spacing: 0.04em;
+}
+
+#ppvenipak-order-panel .table th,
+#ppvenipak-order-panel .table td {
+    /* The card-body wraps the table with p-0 so the rows reach the edges
+       of the wider card-header / card-footer; restore horizontal padding
+       on the cells themselves so labels and values aren't flush to the
+       border. Vertical padding stays at Bootstrap's default. */
+    padding-left: 1rem;
+    padding-right: 1rem;
+    vertical-align: middle;
+}
+
+#ppvenipak-order-panel .table th {
+    font-weight: 500;
+    color: #6b7280;
+    width: 35%;
+}
+
+/* Tinted info sections under the table (Pickup point / Courier details /
+   Previous attempts) — match the cell padding so the whole panel reads
+   as one consistent block. */
+#ppvenipak-order-panel > .card-body > div[class*="px-3"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+#ppvenipak-order-panel .table td code,
+#ppvenipak-order-panel .table th code {
+    font-size: 0.85em;
+    background: #f3f4f6;
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+
+#ppvenipak-order-panel .input-group-sm .form-control,
+#ppvenipak-order-panel .input-group-sm .input-group-text {
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Inline notice surfaced by the panel JS (success / error toast pinned to
+   the top of the card body). */
+.ppvenipak-notice {
+    margin: 0 1rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.ppvenipak-notice--success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.ppvenipak-notice--error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Tracking events container — populated by the Refresh Tracking action. */
+.ppvenipak-panel__tracking-details {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #e9ecef;
+    background: #fafbfc;
+    font-size: 0.85rem;
+}
+
+.ppvenipak-tracking-pack {
+    margin-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.ppvenipak-tracking-pack:last-child {
+    border-bottom: none;
+}
+
+.ppvenipak-tracking-row {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.ppvenipak-tracking-date {
+    color: #999;
+    margin-right: 0.5rem;
+}
+
+.ppvenipak-tracking-status {
+    font-weight: 500;
+}
+
+.ppvenipak-tracking-terminal {
+    color: #888;
+}
+
+/* Spinner glyph used by setLoading() — a slow rotation of the material
+   `sync` icon. */
+.ppvenipak-spin {
+    animation: ppvenipak-spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes ppvenipak-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

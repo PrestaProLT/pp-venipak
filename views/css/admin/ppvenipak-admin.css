@@ -1,0 +1,1006 @@
+/*
+ * PPVenipak admin design system.
+ *
+ * All admin pages share this stylesheet. The design tokens (colors, spacing,
+ * typography, radii) live in the :root scope so individual components stay
+ * consistent. Dark-mode overrides are scoped to .ppv-shell so we don't fight
+ * the surrounding PrestaShop admin chrome.
+ */
+
+:root {
+    /* Brand */
+    --ppv-c-primary: #2a72d4;
+    --ppv-c-primary-hover: #1d5a96;
+    --ppv-c-primary-bg: #e7f1fb;
+    --ppv-c-primary-border: #b9d3ec;
+
+    /* Status palette */
+    --ppv-c-success: #1f6c39;
+    --ppv-c-success-bg: #e6f4ec;
+    --ppv-c-warn: #8a6800;
+    --ppv-c-warn-bg: #fff4dd;
+    --ppv-c-warn-border: #f0c674;
+    --ppv-c-danger: #b32424;
+    --ppv-c-danger-bg: #fbeaea;
+    --ppv-c-danger-border: #e8a3a3;
+    --ppv-c-info: #1d5a96;
+    --ppv-c-info-bg: #e7f1fb;
+    --ppv-c-neutral: #555;
+    --ppv-c-neutral-bg: #f0f0f0;
+
+    /* Surfaces */
+    --ppv-bg-page: #fafbfc;
+    --ppv-bg-card: #ffffff;
+    --ppv-bg-subtle: #f6f7f9;
+    --ppv-bg-hover: #fafbfc;
+
+    /* Text */
+    --ppv-text-primary: #1d2d3a;
+    --ppv-text-secondary: #4a4a4a;
+    --ppv-text-muted: #6b7280;
+
+    /* Borders */
+    --ppv-border: #e6e6e6;
+    --ppv-border-strong: #d8dde2;
+    --ppv-border-subtle: #eef0f2;
+
+    /* Spacing scale */
+    --ppv-space-1: 4px;
+    --ppv-space-2: 8px;
+    --ppv-space-3: 12px;
+    --ppv-space-4: 16px;
+    --ppv-space-5: 20px;
+    --ppv-space-6: 24px;
+    --ppv-space-8: 32px;
+    --ppv-space-12: 48px;
+
+    /* Typography */
+    --ppv-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ppv-text-xs: 11px;
+    --ppv-text-sm: 12px;
+    --ppv-text-base: 13px;
+    --ppv-text-md: 14px;
+    --ppv-text-lg: 16px;
+    --ppv-text-xl: 22px;
+
+    /* Geometry */
+    --ppv-radius-sm: 3px;
+    --ppv-radius-md: 4px;
+    --ppv-radius-lg: 6px;
+    --ppv-radius-pill: 12px;
+    --ppv-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --ppv-shadow-card: 0 0 0 1px var(--ppv-border);
+    --ppv-shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+    /* Animation */
+    --ppv-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ppv-duration: 150ms;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ppv-shell {
+        --ppv-bg-page: #14181c;
+        --ppv-bg-card: #1f242a;
+        --ppv-bg-subtle: #232932;
+        --ppv-bg-hover: #2a313a;
+        --ppv-text-primary: #e6eaf0;
+        --ppv-text-secondary: #c0c6cf;
+        --ppv-text-muted: #8d96a3;
+        --ppv-border: #2d343d;
+        --ppv-border-strong: #3a424d;
+        --ppv-border-subtle: #252b33;
+    }
+}
+
+/* ----- Shell + page header ----------------------------------------------- */
+
+.ppv-shell {
+    font-size: var(--ppv-text-md);
+    color: var(--ppv-text-primary);
+}
+
+.ppv-shell *,
+.ppv-shell *::before,
+.ppv-shell *::after {
+    box-sizing: border-box;
+}
+
+.ppv-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-3);
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: var(--ppv-space-5) 0 var(--ppv-space-3);
+    border-bottom: 1px solid var(--ppv-border-subtle);
+    margin-bottom: var(--ppv-space-5);
+}
+
+.ppv-page-header__title {
+    margin: 0 0 var(--ppv-space-1);
+    font-size: var(--ppv-text-xl);
+    font-weight: 600;
+    color: var(--ppv-text-primary);
+}
+
+.ppv-page-header__description {
+    margin: 0;
+    color: var(--ppv-text-muted);
+    max-width: 720px;
+}
+
+.ppv-page-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-2);
+    align-items: center;
+}
+
+/* ----- Tab navigation ---------------------------------------------------- */
+
+.ppv-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--ppv-border-strong);
+    margin: 0 calc(var(--ppv-space-2) * -1);
+    padding: 0 var(--ppv-space-2);
+    list-style: none;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+}
+
+.ppv-tabs__item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ppv-space-2);
+    padding: var(--ppv-space-3) var(--ppv-space-4);
+    border-bottom: 2px solid transparent;
+    color: var(--ppv-text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    transition: color var(--ppv-duration) var(--ppv-ease),
+                border-color var(--ppv-duration) var(--ppv-ease),
+                background-color var(--ppv-duration) var(--ppv-ease);
+}
+
+.ppv-tabs__item:hover {
+    color: var(--ppv-text-primary);
+    text-decoration: none;
+    background: var(--ppv-bg-hover);
+}
+
+.ppv-tabs__item--active {
+    color: var(--ppv-c-primary);
+    border-bottom-color: var(--ppv-c-primary);
+    font-weight: 600;
+}
+
+.ppv-tabs__icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+
+.ppv-tabs__item--active .ppv-tabs__icon {
+    opacity: 1;
+}
+
+@media (max-width: 720px) {
+    .ppv-tabs {
+        font-size: var(--ppv-text-base);
+    }
+    .ppv-tabs__item {
+        padding: var(--ppv-space-2) var(--ppv-space-3);
+    }
+}
+
+/* ----- Cards ------------------------------------------------------------- */
+
+.ppv-card {
+    background: var(--ppv-bg-card);
+    border: 1px solid var(--ppv-border);
+    border-radius: var(--ppv-radius-md);
+    margin-bottom: var(--ppv-space-4);
+    overflow: hidden;
+}
+
+.ppv-card__header {
+    padding: var(--ppv-space-3) var(--ppv-space-4);
+    border-bottom: 1px solid var(--ppv-border-subtle);
+    background: var(--ppv-bg-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ppv-space-2);
+}
+
+.ppv-card__title {
+    margin: 0;
+    font-size: var(--ppv-text-md);
+    font-weight: 600;
+    color: var(--ppv-text-primary);
+}
+
+.ppv-card__help {
+    color: var(--ppv-text-muted);
+    font-weight: 400;
+    font-size: var(--ppv-text-sm);
+}
+
+.ppv-card__body {
+    padding: var(--ppv-space-4);
+}
+
+.ppv-card__footer {
+    padding: var(--ppv-space-3) var(--ppv-space-4);
+    border-top: 1px solid var(--ppv-border-subtle);
+    background: var(--ppv-bg-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ppv-space-2);
+    justify-content: flex-end;
+}
+
+/* ----- Tables ------------------------------------------------------------ */
+
+.ppv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--ppv-text-base);
+    background: var(--ppv-bg-card);
+}
+
+.ppv-table th,
+.ppv-table td {
+    padding: var(--ppv-space-2) var(--ppv-space-3);
+    border-bottom: 1px solid var(--ppv-border-subtle);
+    text-align: left;
+    vertical-align: top;
+}
+
+.ppv-table th {
+    background: var(--ppv-bg-subtle);
+    font-weight: 600;
+    color: var(--ppv-text-secondary);
+}
+
+.ppv-table tbody tr:hover {
+    background: var(--ppv-bg-hover);
+}
+
+.ppv-table tbody tr.is-clickable {
+    cursor: pointer;
+}
+
+/* Soft pulse when a row is the URL fragment target — used when arriving from
+   the order panel "Manifest" link so the merchant spots the right row. */
+.ppv-table tbody tr:target {
+    animation: ppv-target-pulse 2.5s ease-out 1;
+    background: var(--ppv-bg-hover);
+}
+
+@keyframes ppv-target-pulse {
+    0%   { background: rgba(245, 197, 24, 0.55); }
+    60%  { background: rgba(245, 197, 24, 0.18); }
+    100% { background: var(--ppv-bg-hover); }
+}
+
+.ppv-table code {
+    font-family: var(--ppv-font-mono);
+    font-size: 11px;
+    background: var(--ppv-bg-subtle);
+    padding: 1px var(--ppv-space-1);
+    border-radius: var(--ppv-radius-sm);
+}
+
+/* ----- Status badges ----------------------------------------------------- */
+
+.ppv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ppv-space-1);
+    padding: 2px var(--ppv-space-2);
+    border-radius: var(--ppv-radius-pill);
+    font-size: var(--ppv-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    background: var(--ppv-c-neutral-bg);
+    color: var(--ppv-c-neutral);
+    white-space: nowrap;
+}
+
+.ppv-badge--success { background: var(--ppv-c-success-bg); color: var(--ppv-c-success); }
+.ppv-badge--warn    { background: var(--ppv-c-warn-bg);    color: var(--ppv-c-warn);    }
+.ppv-badge--danger  { background: var(--ppv-c-danger-bg);  color: var(--ppv-c-danger);  }
+.ppv-badge--info    { background: var(--ppv-c-info-bg);    color: var(--ppv-c-info);    }
+.ppv-badge--primary { background: var(--ppv-c-primary);    color: #fff;                 }
+
+/* ----- Filter pills ------------------------------------------------------ */
+
+.ppv-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-1);
+    margin-bottom: var(--ppv-space-3);
+}
+
+.ppv-pill {
+    background: var(--ppv-bg-subtle);
+    color: var(--ppv-text-primary);
+    border-radius: var(--ppv-radius-pill);
+    padding: 4px var(--ppv-space-3);
+    font-size: var(--ppv-text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color var(--ppv-duration) var(--ppv-ease);
+}
+
+.ppv-pill:hover {
+    background: var(--ppv-border-subtle);
+    text-decoration: none;
+}
+
+.ppv-pill--active {
+    background: var(--ppv-c-primary);
+    color: #fff;
+}
+
+.ppv-pill--active:hover {
+    background: var(--ppv-c-primary-hover);
+    color: #fff;
+}
+
+.ppv-pill--danger {
+    background: var(--ppv-c-danger-bg);
+    color: var(--ppv-c-danger);
+}
+
+.ppv-pill--danger.ppv-pill--active {
+    background: var(--ppv-c-danger);
+    color: #fff;
+}
+
+.ppv-pill__count {
+    opacity: 0.7;
+    margin-left: var(--ppv-space-1);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ----- Stat tiles (Dashboard) ------------------------------------------- */
+
+.ppv-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--ppv-space-3);
+    margin-bottom: var(--ppv-space-5);
+}
+
+.ppv-stat {
+    background: var(--ppv-bg-card);
+    border: 1px solid var(--ppv-border);
+    border-radius: var(--ppv-radius-md);
+    padding: var(--ppv-space-4);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: border-color var(--ppv-duration) var(--ppv-ease),
+                box-shadow var(--ppv-duration) var(--ppv-ease),
+                transform var(--ppv-duration) var(--ppv-ease);
+}
+
+.ppv-stat:hover {
+    border-color: var(--ppv-c-primary-border);
+    box-shadow: var(--ppv-shadow-lift);
+    text-decoration: none;
+    color: inherit;
+    transform: translateY(-1px);
+}
+
+.ppv-stat__label {
+    font-size: var(--ppv-text-sm);
+    color: var(--ppv-text-muted);
+    margin: 0 0 var(--ppv-space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--ppv-space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+
+.ppv-stat__count {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ppv-text-primary);
+    margin: 0;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.ppv-stat__detail {
+    font-size: var(--ppv-text-sm);
+    color: var(--ppv-text-muted);
+    margin: var(--ppv-space-2) 0 0;
+}
+
+.ppv-stat--success .ppv-stat__count { color: var(--ppv-c-success); }
+.ppv-stat--warn    .ppv-stat__count { color: var(--ppv-c-warn);    }
+.ppv-stat--danger  .ppv-stat__count { color: var(--ppv-c-danger);  }
+
+/* Country freshness sub-tiles inside a stat */
+.ppv-freshness {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-2);
+    margin-top: var(--ppv-space-2);
+}
+
+.ppv-freshness__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--ppv-text-xs);
+    font-weight: 600;
+    color: var(--ppv-text-muted);
+}
+
+.ppv-freshness__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ppv-c-success);
+}
+
+.ppv-freshness__dot--warn   { background: var(--ppv-c-warn);   }
+.ppv-freshness__dot--danger { background: var(--ppv-c-danger); }
+.ppv-freshness__dot--empty  { background: var(--ppv-border-strong); }
+
+/* ----- Forms ------------------------------------------------------------- */
+
+.ppv-form .form-group {
+    margin: 0 0 var(--ppv-space-3);
+}
+
+.ppv-form label {
+    display: block;
+    font-size: var(--ppv-text-base);
+    font-weight: 600;
+    color: var(--ppv-text-primary);
+    margin-bottom: var(--ppv-space-1);
+}
+
+.ppv-form small.text-muted {
+    display: block;
+    font-size: var(--ppv-text-sm);
+    color: var(--ppv-text-muted);
+    margin-top: var(--ppv-space-1);
+}
+
+.ppv-form input[type="text"],
+.ppv-form input[type="number"],
+.ppv-form input[type="date"],
+.ppv-form input[type="email"],
+.ppv-form input[type="tel"],
+.ppv-form select {
+    width: 100%;
+    padding: var(--ppv-space-2) var(--ppv-space-3);
+    border: 1px solid var(--ppv-border-strong);
+    border-radius: var(--ppv-radius-sm);
+    font-size: var(--ppv-text-base);
+    background: var(--ppv-bg-card);
+    color: var(--ppv-text-primary);
+}
+
+.ppv-form input:focus,
+.ppv-form select:focus {
+    outline: none;
+    border-color: var(--ppv-c-primary);
+    box-shadow: 0 0 0 2px var(--ppv-c-primary-bg);
+}
+
+.ppv-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ppv-space-3);
+}
+
+@media (max-width: 720px) {
+    .ppv-form-row { grid-template-columns: 1fr; }
+}
+
+.ppv-form-actions {
+    display: flex;
+    gap: var(--ppv-space-2);
+    align-items: center;
+    margin-top: var(--ppv-space-4);
+    flex-wrap: wrap;
+}
+
+/* ----- Filter row (compact horizontal form) ----------------------------- */
+
+.ppv-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-2);
+    align-items: end;
+    margin-bottom: var(--ppv-space-3);
+}
+
+.ppv-filters .form-group {
+    margin: 0;
+}
+
+.ppv-filters label {
+    display: block;
+    font-size: var(--ppv-text-xs);
+    color: var(--ppv-text-muted);
+    margin-bottom: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ppv-filters input,
+.ppv-filters select {
+    font-size: var(--ppv-text-base);
+    padding: var(--ppv-space-1) var(--ppv-space-2);
+    border: 1px solid var(--ppv-border-strong);
+    border-radius: var(--ppv-radius-sm);
+    background: var(--ppv-bg-card);
+    color: var(--ppv-text-primary);
+}
+
+.ppv-filters .ppv-filters__search {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* ----- Empty state ------------------------------------------------------- */
+
+.ppv-empty {
+    background: var(--ppv-bg-subtle);
+    border: 1px dashed var(--ppv-border-strong);
+    border-radius: var(--ppv-radius-md);
+    padding: var(--ppv-space-3) var(--ppv-space-4);
+    text-align: center;
+    color: var(--ppv-text-muted);
+}
+
+.ppv-empty__title {
+    font-size: var(--ppv-text-sm);
+    font-weight: 600;
+    color: var(--ppv-text-primary);
+    margin: 0 0 2px;
+}
+
+.ppv-empty__body {
+    margin: 0 auto;
+    max-width: 480px;
+    font-size: var(--ppv-text-sm);
+    line-height: 1.4;
+}
+
+/* ----- Connection / system status banner -------------------------------- */
+
+.ppv-status {
+    display: flex;
+    align-items: center;
+    gap: var(--ppv-space-2);
+    padding: var(--ppv-space-2) var(--ppv-space-4);
+    border-radius: var(--ppv-radius-md);
+    margin-bottom: var(--ppv-space-3);
+    font-size: var(--ppv-text-base);
+    background: var(--ppv-c-neutral-bg);
+    color: var(--ppv-c-neutral);
+}
+
+.ppv-status--connected    { background: var(--ppv-c-success-bg); color: var(--ppv-c-success); }
+.ppv-status--disconnected { background: var(--ppv-c-danger-bg);  color: var(--ppv-c-danger);  }
+.ppv-status--unknown      { background: var(--ppv-c-warn-bg);    color: var(--ppv-c-warn);    }
+
+.ppv-status__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ----- Multistore safety warning --------------------------------------- */
+
+.ppv-multistore-warning {
+    background: var(--ppv-c-warn-bg);
+    border: 1px solid var(--ppv-c-warn-border);
+    border-radius: var(--ppv-radius-md);
+    padding: var(--ppv-space-4);
+    margin: var(--ppv-space-4) 0;
+    color: var(--ppv-c-warn);
+}
+
+.ppv-multistore-warning h4 {
+    margin: 0 0 var(--ppv-space-1);
+    font-size: var(--ppv-text-md);
+    font-weight: 600;
+}
+
+.ppv-multistore-warning p {
+    margin: var(--ppv-space-1) 0;
+}
+
+/* ----- Migration banner ------------------------------------------------- */
+
+.ppv-banner-info {
+    background: var(--ppv-c-info-bg);
+    border: 1px solid var(--ppv-c-primary-border);
+    padding: var(--ppv-space-4);
+    border-radius: var(--ppv-radius-md);
+    margin-bottom: var(--ppv-space-3);
+}
+
+.ppv-banner-info h4 {
+    margin: 0 0 var(--ppv-space-1);
+    font-size: var(--ppv-text-md);
+    font-weight: 600;
+    color: var(--ppv-c-info);
+}
+
+.ppv-banner-info p {
+    margin: var(--ppv-space-1) 0;
+    font-size: var(--ppv-text-base);
+}
+
+.ppv-banner-info__actions {
+    margin-top: var(--ppv-space-2);
+    display: flex;
+    gap: var(--ppv-space-1);
+}
+
+/* ----- Loading / spinner ------------------------------------------------- */
+
+.ppv-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: -2px;
+    animation: ppv-spin 0.6s linear infinite;
+}
+
+@keyframes ppv-spin {
+    to { transform: rotate(360deg); }
+}
+
+.ppv-loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.ppv-loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-left: var(--ppv-space-2);
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: ppv-spin 0.6s linear infinite;
+    vertical-align: -2px;
+}
+
+/* ----- Toast notice (for fetch results) -------------------------------- */
+
+.ppv-notice {
+    padding: var(--ppv-space-2) var(--ppv-space-3);
+    border-radius: var(--ppv-radius-md);
+    margin-bottom: var(--ppv-space-3);
+    font-size: var(--ppv-text-base);
+    white-space: pre-line;
+    background: var(--ppv-c-neutral-bg);
+    color: var(--ppv-c-neutral);
+}
+
+.ppv-notice--success { background: var(--ppv-c-success-bg); color: var(--ppv-c-success); }
+.ppv-notice--error   { background: var(--ppv-c-danger-bg);  color: var(--ppv-c-danger);  }
+.ppv-notice--warn    { background: var(--ppv-c-warn-bg);    color: var(--ppv-c-warn);    }
+
+/* ----- Pagination row -------------------------------------------------- */
+
+.ppv-pagination {
+    display: flex;
+    gap: var(--ppv-space-2);
+    align-items: center;
+    margin-top: var(--ppv-space-3);
+    font-size: var(--ppv-text-base);
+    color: var(--ppv-text-muted);
+}
+
+/* ----- Quick action button ---------------------------------------------- */
+
+.ppv-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-2);
+    margin-bottom: var(--ppv-space-5);
+    padding: var(--ppv-space-3);
+    background: var(--ppv-bg-subtle);
+    border-radius: var(--ppv-radius-md);
+    border: 1px solid var(--ppv-border-subtle);
+}
+
+.ppv-quick-actions form {
+    display: inline;
+}
+
+/* ----- Detail row (log expansion) -------------------------------------- */
+
+.ppv-detail-pane {
+    background: var(--ppv-bg-subtle);
+    border: 1px solid var(--ppv-border);
+    border-radius: var(--ppv-radius-md);
+    padding: var(--ppv-space-3);
+    margin-top: var(--ppv-space-2);
+}
+
+.ppv-detail-pane h5 {
+    margin: var(--ppv-space-2) 0 var(--ppv-space-1);
+    font-size: var(--ppv-text-base);
+    font-weight: 600;
+}
+
+.ppv-detail-pane pre {
+    background: var(--ppv-bg-card);
+    border: 1px solid var(--ppv-border);
+    padding: var(--ppv-space-2);
+    max-height: 320px;
+    overflow: auto;
+    font-size: var(--ppv-text-sm);
+    line-height: 1.4;
+    font-family: var(--ppv-font-mono);
+    margin: 0;
+}
+
+/* Raw Venipak error text shown inline under the humanized message in the
+   Logs table — visually subordinate so the actionable summary stays the
+   primary read, but always visible without an expand-row click. */
+.ppv-log-raw {
+    margin-top: var(--ppv-space-1);
+    font-size: 11px;
+    color: var(--ppv-text-muted, #6b7280);
+}
+
+.ppv-log-raw__label {
+    display: inline-block;
+    margin-right: var(--ppv-space-1);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ppv-log-raw__line {
+    display: block;
+    padding: 2px 6px;
+    margin-top: 2px;
+    background: var(--ppv-bg-subtle);
+    border-left: 2px solid var(--ppv-c-danger, #dc3545);
+    font-family: var(--ppv-font-mono);
+    font-size: 11px;
+    color: var(--ppv-text);
+    word-break: break-word;
+}
+
+/* Inline collapsible request/response payload directly in the Logs table —
+   collapsed by default to keep the row scannable, but the XML lives in the
+   page source so opening is instant and several can be open at once. */
+.ppv-log-payload {
+    margin-top: var(--ppv-space-1);
+    border: 1px solid var(--ppv-border, #e5e7eb);
+    border-radius: var(--ppv-radius-sm, 4px);
+    background: var(--ppv-bg-subtle, #f3f4f6);
+}
+
+.ppv-log-payload > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ppv-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    user-select: none;
+}
+
+.ppv-log-payload > summary::-webkit-details-marker { display: none; }
+
+.ppv-log-payload > summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.15s ease;
+    color: var(--ppv-text-muted, #6b7280);
+}
+
+.ppv-log-payload[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.ppv-log-payload__size {
+    margin-left: 6px;
+    font-weight: 400;
+    color: var(--ppv-text-muted, #6b7280);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.ppv-log-payload pre {
+    margin: 0;
+    padding: var(--ppv-space-2);
+    border-top: 1px solid var(--ppv-border, #e5e7eb);
+    background: var(--ppv-bg-card, #fff);
+    font-family: var(--ppv-font-mono);
+    font-size: 11px;
+    line-height: 1.4;
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ----- Row actions cell ------------------------------------------------- */
+
+.ppv-row-actions {
+    white-space: nowrap;
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.ppv-row-actions .btn {
+    padding: 4px var(--ppv-space-2);
+    font-size: var(--ppv-text-sm);
+}
+
+.ppv-row-actions form {
+    display: inline;
+}
+
+/* ----- Bulk-toggle helper text ----------------------------------------- */
+
+.ppv-bulk-toggle {
+    font-size: var(--ppv-text-sm);
+    color: var(--ppv-c-info);
+    cursor: pointer;
+    user-select: none;
+}
+
+.ppv-bulk-toggle:hover {
+    text-decoration: underline;
+}
+
+/* ----- Visual error list (validation) ---------------------------------- */
+
+.ppv-errors {
+    background: var(--ppv-c-danger-bg);
+    border: 1px solid var(--ppv-c-danger-border);
+    padding: var(--ppv-space-3);
+    border-radius: var(--ppv-radius-md);
+    margin-bottom: var(--ppv-space-3);
+}
+
+.ppv-errors ul {
+    margin: var(--ppv-space-1) 0 0;
+    padding-left: var(--ppv-space-5);
+}
+
+/* ----- Modal (Call Courier on manifests page) -------------------------- */
+
+.ppv-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+}
+
+body.ppv-modal-open {
+    overflow: hidden;
+}
+
+.ppv-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.ppv-modal__panel {
+    position: relative;
+    background: var(--ppv-bg-surface, #fff);
+    color: var(--ppv-text, #1c2230);
+    border-radius: var(--ppv-radius-lg, 8px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.ppv-modal__header,
+.ppv-modal__body,
+.ppv-modal__footer {
+    padding: var(--ppv-space-4, 16px);
+}
+
+.ppv-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--ppv-border, #e5e7eb);
+}
+
+.ppv-modal__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ppv-modal__close {
+    background: none;
+    border: 0;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--ppv-text-muted, #6b7280);
+    padding: 0 var(--ppv-space-1, 4px);
+}
+
+.ppv-modal__close:hover {
+    color: var(--ppv-text, #1c2230);
+}
+
+.ppv-modal__hint {
+    margin: 0 0 var(--ppv-space-3, 12px);
+    font-size: 13px;
+    color: var(--ppv-text-muted, #6b7280);
+}
+
+.ppv-modal__row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    align-items: center;
+    gap: var(--ppv-space-3, 12px);
+    margin-bottom: var(--ppv-space-2, 8px);
+}
+
+.ppv-modal__row label {
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.ppv-modal__row code {
+    font-family: var(--ppv-font-mono);
+    font-size: 13px;
+    background: var(--ppv-bg-subtle, #f3f4f6);
+    padding: 2px 6px;
+    border-radius: var(--ppv-radius-sm, 4px);
+}
+
+.ppv-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--ppv-space-2, 8px);
+    border-top: 1px solid var(--ppv-border, #e5e7eb);
+}

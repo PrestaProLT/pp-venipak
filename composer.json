@@ -19,7 +19,7 @@
     },
     "require": {
         "php": ">=8.1",
-        "prestapro/pp-common": "^1.0"
+        "prestapro/pp-common": "dev-main"
     },
     "repositories": [
         {

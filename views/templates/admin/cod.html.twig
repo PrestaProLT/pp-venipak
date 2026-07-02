@@ -1,0 +1,77 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'cod',
+    page_title: 'Cash on Delivery'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Tick the payment methods that should mark a Venipak shipment as Cash on Delivery. The COD amount and currency are then sent to Venipak so the courier collects payment from the recipient.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+
+{% if orphans|length > 0 %}
+<div class="ppv-multistore-warning" style="background: var(--ppv-c-warn-bg);">
+    <h4>{{ 'Stale entries'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+    <p>{{ 'These module names are saved as COD but no longer exist as installed payment modules. Save without ticking them to remove.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+    <ul style="margin: 4px 0 0 20px;">{% for o in orphans %}<li><code>{{ o }}</code></li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="post" action="{{ save_url }}" data-ppv-loading>
+    <div class="ppv-card">
+        <div class="ppv-card__header">
+            <h3 class="ppv-card__title">{{ 'Installed payment methods'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+            <span class="ppv-card__help">{{ 'Tick a method to mark it as COD. Methods you do not see here are not yet hooked into PrestaShop\'s payment flow.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+        </div>
+        <div class="ppv-card__body">
+            {% if available_modules|length == 0 %}
+                <div class="ppv-empty">
+                    <h4 class="ppv-empty__title">{{ 'No payment methods installed'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                    <p class="ppv-empty__body">{{ 'Install at least one payment module (for example, ps_cashondelivery) before marking it as COD.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+                </div>
+            {% else %}
+                <div style="margin-bottom: var(--ppv-space-2);">
+                    <span class="ppv-bulk-toggle" data-action="all">{{ 'Select all'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                    &nbsp;·&nbsp;
+                    <span class="ppv-bulk-toggle" data-action="none">{{ 'Clear'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--ppv-space-2);">
+                    {% for m in available_modules %}
+                        <label style="display: flex; align-items: flex-start; gap: var(--ppv-space-2); padding: var(--ppv-space-3); border: 1px solid var(--ppv-border); border-radius: var(--ppv-radius-md); background: var(--ppv-bg-card); cursor: pointer; transition: background-color var(--ppv-duration);"
+                               onmouseover="this.style.background='var(--ppv-bg-hover)'" onmouseout="this.style.background='var(--ppv-bg-card)'">
+                            <input type="checkbox" name="modules[]" value="{{ m.name }}" {% if m.name in selected %}checked{% endif %} style="margin-top: 2px; flex-shrink: 0;">
+                            <span style="flex: 1;">
+                                <strong style="color: var(--ppv-text-primary);">{{ m.display_name }}</strong>
+                                <small style="display: block; font-family: var(--ppv-font-mono); color: var(--ppv-text-muted); font-size: var(--ppv-text-xs); margin-top: 2px;">{{ m.name }}{% if m.version %} · v{{ m.version }}{% endif %}</small>
+                            </span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="ppv-form-actions">
+        <button type="submit" class="btn btn-primary">{{ 'Save changes'|trans({}, 'Admin.Actions') }}</button>
+        <span style="font-size: var(--ppv-text-sm); color: var(--ppv-text-muted);">
+            {{ '%count% payment method(s) currently marked as COD.'|trans({'%count%': selected|length}, 'Modules.Ppvenipak.Admin') }}
+        </span>
+    </div>
+</form>
+
+</div>
+
+<script>
+(function () {
+    document.querySelectorAll('.ppv-bulk-toggle').forEach(function (el) {
+        el.addEventListener('click', function () {
+            var checked = el.dataset.action === 'all';
+            document.querySelectorAll('input[name="modules[]"]').forEach(function (cb) { cb.checked = checked; });
+        });
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

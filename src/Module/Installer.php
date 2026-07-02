@@ -5,10 +5,19 @@ declare(strict_types=1);
 namespace PrestaShop\Module\PPVenipak\Module;
 
 use Configuration;
+use Country;
 use Db;
+use Shop;
 
 class Installer
 {
+    /**
+     * Countries Venipak handles as plain domestic. Other ISOs are still seeded
+     * onto the warehouse but the admin will need to decide which Venipak service
+     * to route through (international/global).
+     */
+    private const SUPPORTED_COUNTRIES = ['LT', 'LV', 'EE', 'PL'];
+
     private \Module $module;
 
     public function __construct(\Module $module)
@@ -22,7 +31,35 @@ class Installer
             && $this->createTables()
             && $this->createOrderStates()
             && $this->createCarriers()
-            && $this->setDefaults();
+            && $this->setDefaults()
+            && $this->createDefaultWarehouseFromShop()
+            && $this->installCarrierOverride();
+    }
+
+    /**
+     * Manage `override/classes/Carrier.php` ourselves so the install does not
+     * fail when sibling carrier modules ship the same generic override (PS's
+     * built-in override merger rejects duplicate method declarations even
+     * when the bodies are identical).
+     */
+    private function installCarrierOverride(): bool
+    {
+        $manager = new CarrierOverrideManager(dirname(__DIR__, 2));
+        $result = $manager->install();
+
+        // Failure to install is informational — surface to the admin via the
+        // module's standard "logger" hook if available, but don't block the
+        // module install.
+        if (!$result['success'] && class_exists('PrestaShopLogger')) {
+            \PrestaShopLogger::addLog(
+                'PPVenipak: ' . $result['message'],
+                2,
+                null,
+                'CarrierOverrideManager'
+            );
+        }
+
+        return true;
     }
 
     private function registerHooks(): bool
@@ -65,7 +102,7 @@ class Installer
 
     private function createOrderStates(): bool
     {
-        $this->module->createOrderState(
+        $this->module->addOrderState(
             'PPVENIPAK_STATE_READY',
             [
                 'en' => 'Venipak shipment ready',
@@ -74,7 +111,7 @@ class Installer
             '#FCEAA8'
         );
 
-        $this->module->createOrderState(
+        $this->module->addOrderState(
             'PPVENIPAK_STATE_ERROR',
             [
                 'en' => 'Venipak shipment error',
@@ -102,6 +139,7 @@ class Installer
             'PPVENIPAK_NWD_ENABLED' => '1',
             'PPVENIPAK_COD_MODULES' => 'ps_cashondelivery',
             'PPVENIPAK_CRON_TOKEN' => bin2hex(random_bytes(16)),
+            'PPVENIPAK_LOG_RETENTION_DAYS' => '30',
         ];
 
         foreach ($defaults as $key => $value) {
@@ -114,7 +152,74 @@ class Installer
             'PPVENIPAK_MANIFEST_COUNTER',
             json_encode(['counter' => 0, 'date' => ''])
         );
+        // Per-store auth mode defaults ON: each shop in a multistore should
+        // hold its own Venipak credentials by default. Merchants who want a
+        // single shared credential set can flip this off from the All Shops
+        // context where the toggle is visible.
+        Configuration::updateGlobalValue('PPVENIPAK_STORE_AUTH_MODE', '1');
 
         return true;
+    }
+
+    /**
+     * Pre-fill the first warehouse using PrestaShop's shop contact details so
+     * the admin doesn't have to retype it. Idempotent — only runs when no
+     * warehouse exists yet for the active shop. Skips silently when the shop
+     * contacts are empty (admin can add a warehouse manually later).
+     */
+    private function createDefaultWarehouseFromShop(): bool
+    {
+        $idShop = (int) (Shop::getContextShopID() ?: Configuration::get('PS_SHOP_DEFAULT'));
+        if ($idShop <= 0) {
+            $idShop = 1;
+        }
+
+        $existing = Db::getInstance()->getValue(
+            'SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'ppvenipak_warehouse`
+             WHERE `id_shop` = ' . $idShop
+        );
+
+        if ((int) $existing > 0) {
+            return true;
+        }
+
+        $shopName = trim((string) Configuration::get('PS_SHOP_NAME'));
+        if ($shopName === '') {
+            // Admin can add a warehouse manually from the Warehouses tab.
+            return true;
+        }
+
+        $iso = '';
+        $countryId = (int) Configuration::get('PS_SHOP_COUNTRY_ID');
+        if ($countryId > 0 && class_exists('Country')) {
+            $iso = strtoupper((string) Country::getIsoById($countryId));
+        }
+        $countryCode = $iso !== '' ? $iso : 'LT';
+        if (!in_array($countryCode, self::SUPPORTED_COUNTRIES, true)) {
+            // Country is outside Venipak's domestic set; default to LT and let
+            // the admin correct it. Still create the warehouse so the install
+            // produces a usable starting point.
+            $countryCode = 'LT';
+        }
+
+        $address = trim(
+            (string) Configuration::get('PS_SHOP_ADDR1') . ' '
+            . (string) Configuration::get('PS_SHOP_ADDR2')
+        );
+
+        $payload = [
+            'name' => pSQL(mb_substr($shopName, 0, 60)),
+            'company_code' => pSQL(mb_substr((string) Configuration::get('PS_SHOP_REGISTRATION_NUMBER'), 0, 16)),
+            'contact' => pSQL(mb_substr($shopName, 0, 40)),
+            'country_code' => pSQL($countryCode),
+            'city' => pSQL(mb_substr((string) Configuration::get('PS_SHOP_CITY'), 0, 50)),
+            'address' => pSQL(mb_substr($address, 0, 255)),
+            'zip_code' => pSQL(mb_substr((string) Configuration::get('PS_SHOP_CODE'), 0, 10)),
+            'phone' => pSQL(mb_substr((string) Configuration::get('PS_SHOP_PHONE'), 0, 15)),
+            'id_shop' => $idShop,
+            'is_default' => 1,
+        ];
+
+        return (bool) Db::getInstance()->insert('ppvenipak_warehouse', $payload);
     }
 }

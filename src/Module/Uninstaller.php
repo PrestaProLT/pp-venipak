@@ -20,7 +20,21 @@ class Uninstaller
     {
         return $this->deleteCarriers()
             && $this->unregisterHooks()
-            && $this->deleteConfigurations();
+            && $this->deleteConfigurations()
+            && $this->releaseCarrierOverride();
+    }
+
+    /**
+     * Release the localized-carrier-name override. Currently a no-op so
+     * sibling carrier modules keep their localized names. See
+     * CarrierOverrideManager for the rationale.
+     */
+    private function releaseCarrierOverride(): bool
+    {
+        $manager = new CarrierOverrideManager(dirname(__DIR__, 2));
+        $manager->uninstall();
+
+        return true;
     }
 
     private function deleteCarriers(): bool
@@ -39,6 +53,24 @@ class Uninstaller
         return true;
     }
 
+    /**
+     * Configuration keys that survive an uninstall.
+     *
+     * The order-state ID pointers are kept so that a subsequent reinstall can
+     * reuse the existing OrderState rows (pp-common's createOrderState is
+     * idempotent based on these keys). Without this exclusion, every
+     * install/uninstall cycle creates a new pair of OrderStates and the
+     * `ps_order_state` table accumulates orphaned duplicates — eventually
+     * causing PS's status-dropdown form to throw "data-background-color does
+     * not exist" because one of the duplicate choices' attr array is empty.
+     */
+    private const PRESERVE_KEYS = [
+        'PPVENIPAK_STATE_READY',
+        'PPVENIPAK_STATE_ERROR',
+        'PPVENIPAK_COURIER_ID_REF',
+        'PPVENIPAK_PICKUP_ID_REF',
+    ];
+
     private function deleteConfigurations(): bool
     {
         $db = Db::getInstance();
@@ -49,6 +81,9 @@ class Uninstaller
 
         if (is_array($rows)) {
             foreach ($rows as $row) {
+                if (in_array($row['name'], self::PRESERVE_KEYS, true)) {
+                    continue;
+                }
                 Configuration::deleteByName(pSQL($row['name']));
             }
         }

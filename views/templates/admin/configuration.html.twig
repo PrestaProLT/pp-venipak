@@ -1,124 +1,205 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
-    {# Header #}
-    {% include '@Modules/ppvenipak/views/templates/admin/partials/_header.html.twig' %}
-
-    {# Connection Status #}
-    {% include '@Modules/ppvenipak/views/templates/admin/partials/_connection_status.html.twig' %}
-
-    {# Migration Banner (if legacy modules detected) #}
-    {% include '@Modules/ppvenipak/views/templates/admin/partials/_migration_banner.html.twig' %}
-
-    {# Tab Navigation #}
-    <div class="prestapro-tabs">
-        <button type="button" class="prestapro-tabs__tab prestapro-tabs__tab--active" data-tab="tab-general">
-            {{ 'General'|trans({}, 'Modules.Ppvenipak.Admin') }}
+{% set page_actions %}
+    {% if not multistore_blocked and test_connection_url %}
+        <button type="button" class="btn btn-secondary" id="ppv-test-connection" data-url="{{ test_connection_url }}">
+            {{ 'Test connection'|trans({}, 'Modules.Ppvenipak.Admin') }}
         </button>
-        <button type="button" class="prestapro-tabs__tab" data-tab="tab-api">
-            {{ 'API'|trans({}, 'Modules.Ppvenipak.Admin') }}
-        </button>
-        <button type="button" class="prestapro-tabs__tab" data-tab="tab-shipping">
-            {{ 'Shipping'|trans({}, 'Modules.Ppvenipak.Admin') }}
-        </button>
-        <button type="button" class="prestapro-tabs__tab" data-tab="tab-advanced">
-            {{ 'Advanced'|trans({}, 'Modules.Ppvenipak.Admin') }}
-        </button>
+    {% endif %}
+{% endset %}
+
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'configuration',
+    page_title: 'Configuration'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'API credentials, checkout fields and shipping options. Settings here apply to the active shop context.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+    multistore_reason: multistore_reason|default(null),
+    page_actions: page_actions,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+
+{# Connection status #}
+{% set status_cls = 'unknown' %}
+{% if connection_status.connected == true %}{% set status_cls = 'connected' %}
+{% elseif connection_status.connected == false %}{% set status_cls = 'disconnected' %}
+{% endif %}
+<div class="ppv-status ppv-status--{{ status_cls }}" id="ppv-connection-status">
+    <span class="ppv-status__dot"></span>
+    <span id="ppv-connection-message">
+        {{ connection_status.message|default('Click "Test connection" to verify your credentials.'|trans({}, 'Modules.Ppvenipak.Admin')) }}
+    </span>
+</div>
+
+{# Migration banner #}
+{% if legacy_modules|length > 0 %}
+    {% for legacy in legacy_modules %}
+        <div class="ppv-banner-info">
+            <h4>{{ 'Legacy %name% detected'|trans({'%name%': legacy.name|default('mijoravenipak')}, 'Modules.Ppvenipak.Admin') }}</h4>
+            <p>{{ 'We can copy configuration, orders, and carrier settings from the older module so you can disable it cleanly. Run the migration when you are ready, or skip if it is already done.'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
+            <div class="ppv-banner-info__actions">
+                <a class="btn btn-primary" href="{{ migration_preview_url }}">{{ 'Preview migration'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                <form method="post" action="{{ migration_skip_url }}" style="display: inline;" data-ppv-loading>
+                    <button type="submit" class="btn btn-secondary">{{ 'Skip / hide banner'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+
+{{ form_start(configurationForm, { attr: { 'data-ppv-loading': '' } }) }}
+
+{% set mode = form_mode|default('shop') %}
+
+{# global_toggle: per-store auth is ON, current context is "All shops".
+   Credentials are scoped per shop so we don't render them here, only the
+   toggle that decides the storage scope. The shop-specific cards live in
+   the {% else %} block. #}
+{% if mode == 'global_toggle' %}
+<div class="ppv-banner-info">
+    <strong>{{ 'You are viewing global settings.'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong>
+    <p>
+        {{ 'API credentials, checkout fields and the return-service window are stored per shop. To edit them, switch the shop selector at the top of the admin to a specific shop. The toggle below controls the global "per-store authentication" mode that decides whether each shop holds its own credentials.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+    </p>
+</div>
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Per-store authentication'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
     </div>
-
-    {# Form #}
-    {{ form_start(configurationForm) }}
-
-    {# General Tab #}
-    <div id="tab-general" class="prestapro-tab-content prestapro-tab-content--active">
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'General Settings'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.enabled) }}
-            {{ form_row(configurationForm.courier_name) }}
-            {{ form_row(configurationForm.pickup_name) }}
-            {{ form_row(configurationForm.tracking_url) }}
-        </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(configurationForm.store_auth_mode) }}
     </div>
+</div>
+{% else %}
+{# 'shop' (per-shop creds) and 'global_full' (shared creds, edited from
+   "All shops") render the same field set. The only difference is that
+   global_full appends the per-store auth toggle at the bottom. #}
+{% if mode == 'global_full' %}
+<div class="ppv-banner-info">
+    <strong>{{ 'You are editing shared settings.'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong>
+    <p>
+        {{ 'Per-store authentication is disabled, so the values you save here are used by every shop on this installation.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+    </p>
+</div>
+{% endif %}
 
-    {# API Tab #}
-    <div id="tab-api" class="prestapro-tab-content">
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'API Credentials'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.api_user) }}
-            {{ form_row(configurationForm.api_pass) }}
-            {{ form_row(configurationForm.api_id) }}
-            {{ form_row(configurationForm.live_mode) }}
-        </div>
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Sender Address'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.sender_name) }}
-            {{ form_row(configurationForm.sender_company_code) }}
-            {{ form_row(configurationForm.sender_contact) }}
-            {{ form_row(configurationForm.sender_country) }}
-            {{ form_row(configurationForm.sender_city) }}
-            {{ form_row(configurationForm.sender_address) }}
-            {{ form_row(configurationForm.sender_postcode) }}
-            {{ form_row(configurationForm.sender_phone) }}
-            {{ form_row(configurationForm.sender_email) }}
-            {{ form_row(configurationForm.include_sender) }}
-        </div>
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'API credentials'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Required to talk to Venipak. Use sandbox credentials with Live mode off, then switch to production.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
     </div>
-
-    {# Shipping Tab #}
-    <div id="tab-shipping" class="prestapro-tab-content">
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Checkout Fields'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.show_door_code) }}
-            {{ form_row(configurationForm.show_cabinet_no) }}
-            {{ form_row(configurationForm.show_warehouse_no) }}
-            {{ form_row(configurationForm.show_delivery_time) }}
-            {{ form_row(configurationForm.show_call_before) }}
-        </div>
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Return Service'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.enable_return_service) }}
-            {{ form_row(configurationForm.return_days) }}
-        </div>
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Next Working Day Delivery'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.nwd_enabled) }}
-            {{ form_row(configurationForm.nwd10_enabled) }}
-            {{ form_row(configurationForm.nwd12_enabled) }}
-            {{ form_row(configurationForm.nwd8_14_enabled) }}
-            {{ form_row(configurationForm.nwd14_17_enabled) }}
-            {{ form_row(configurationForm.nwd18_22_enabled) }}
-        </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(configurationForm.api_user) }}
+        {{ form_row(configurationForm.api_pass) }}
+        {{ form_row(configurationForm.api_id) }}
+        {{ form_row(configurationForm.live_mode) }}
     </div>
+</div>
 
-    {# Advanced Tab #}
-    <div id="tab-advanced" class="prestapro-tab-content">
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Label Settings'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.label_format) }}
-        </div>
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'COD (Cash on Delivery)'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.cod_modules) }}
-        </div>
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Cron'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.cron_token) }}
-        </div>
-        <div class="prestapro-card">
-            <h3 class="prestapro-card__title">{{ 'Security'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
-            {{ form_row(configurationForm.disable_passphrase) }}
-        </div>
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Checkout fields'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Optional input fields the customer sees at checkout. Each one becomes a comment on the shipment.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
     </div>
-
-    {# Submit #}
-    <div class="prestapro-card" style="text-align: right;">
-        <button type="submit" class="btn btn-primary">
-            {{ 'Save'|trans({}, 'Admin.Actions') }}
-        </button>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(configurationForm.show_door_code) }}
+        {{ form_row(configurationForm.show_cabinet_no) }}
+        {{ form_row(configurationForm.show_warehouse_no) }}
+        {{ form_row(configurationForm.show_delivery_time) }}
+        {{ form_row(configurationForm.show_call_before) }}
     </div>
+</div>
 
-    {{ form_end(configurationForm) }}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Return service'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Adds a return-shipping window to outbound parcels. Spec maximum is 365 days.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(configurationForm.enable_return_service) }}
+        {{ form_row(configurationForm.return_days) }}
+    </div>
+</div>
 
-    {# Footer #}
-    {% include '@Modules/ppvenipak/views/templates/admin/partials/_footer.html.twig' %}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Advanced'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Label format, and operational toggles.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(configurationForm.label_format) }}
+        {{ form_row(configurationForm.disable_passphrase) }}
+    </div>
+</div>
+
+{% if mode == 'global_full' %}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Per-store authentication'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+    </div>
+    <div class="ppv-card__body ppv-form">
+        {{ form_row(configurationForm.store_auth_mode) }}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="ppv-form-actions">
+    <button type="submit" class="btn btn-primary">{{ 'Save changes'|trans({}, 'Admin.Actions') }}</button>
+    <span style="font-size: var(--ppv-text-sm); color: var(--ppv-text-muted);">
+        {{ 'Module version: %v%'|trans({'%v%': module_version|default('?')}, 'Modules.Ppvenipak.Admin') }}
+    </span>
+</div>
+
+{# form_end emits any unrendered children — in particular the CSRF _token
+   field that Symfony adds automatically. We used to pass render_rest: false
+   here, which stripped the token along with any leftover fields and made
+   every save silently fail isValid(). The controller now hands us a
+   per-context form (mode='shop' or mode='global') that only contains the
+   fields the template renders explicitly, so default form_end is correct. #}
+{{ form_end(configurationForm) }}
+
+</div>
+
+<script>
+(function () {
+    var btn = document.getElementById('ppv-test-connection');
+    if (!btn) return;
+    var statusEl = document.getElementById('ppv-connection-status');
+    var msgEl = document.getElementById('ppv-connection-message');
+
+    btn.addEventListener('click', function () {
+        if (window.PPVenipakAdmin && window.PPVenipakAdmin.setLoading) {
+            window.PPVenipakAdmin.setLoading(btn, true);
+        } else {
+            btn.disabled = true;
+        }
+        statusEl.classList.remove('ppv-status--connected', 'ppv-status--disconnected');
+        statusEl.classList.add('ppv-status--unknown');
+
+        fetch(btn.dataset.url, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                msgEl.textContent = data.message || '';
+                statusEl.classList.remove('ppv-status--unknown');
+                statusEl.classList.add(data.success ? 'ppv-status--connected' : 'ppv-status--disconnected');
+            })
+            .catch(function (err) {
+                msgEl.textContent = err.message || 'Test failed';
+                statusEl.classList.remove('ppv-status--unknown');
+                statusEl.classList.add('ppv-status--disconnected');
+            })
+            .finally(function () {
+                if (window.PPVenipakAdmin && window.PPVenipakAdmin.setLoading) {
+                    window.PPVenipakAdmin.setLoading(btn, false);
+                } else {
+                    btn.disabled = false;
+                }
+            });
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

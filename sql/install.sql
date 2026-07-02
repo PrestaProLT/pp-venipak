@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS `PREFIX_ppvenipak_order` (
     `extra_fields` TEXT DEFAULT NULL,
     `tracking_numbers` TEXT DEFAULT NULL,
     `error` TEXT DEFAULT NULL,
+    `attempt_count` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    `previous_attempts` TEXT DEFAULT NULL,
     `date_add` DATETIME NOT NULL,
     `date_upd` DATETIME NOT NULL,
     PRIMARY KEY (`id_ppvenipak_order`),
@@ -56,6 +58,26 @@ CREATE TABLE IF NOT EXISTS `PREFIX_ppvenipak_manifest` (
     UNIQUE KEY `idx_manifest_id` (`manifest_id`),
     KEY `idx_warehouse` (`id_warehouse`),
     KEY `idx_closed` (`closed`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `PREFIX_ppvenipak_log` (
+    `id_ppvenipak_log` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `date_add` DATETIME NOT NULL,
+    `level` VARCHAR(16) NOT NULL DEFAULT 'error',
+    `source` VARCHAR(96) NOT NULL DEFAULT '',
+    `endpoint` VARCHAR(255) NOT NULL DEFAULT '',
+    `error_code` SMALLINT UNSIGNED DEFAULT NULL,
+    `message` TEXT NOT NULL,
+    `request_body` MEDIUMTEXT DEFAULT NULL,
+    `response_body` MEDIUMTEXT DEFAULT NULL,
+    `context` TEXT DEFAULT NULL,
+    `id_order` INT UNSIGNED NOT NULL DEFAULT 0,
+    `id_shop` INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id_ppvenipak_log`),
+    KEY `idx_date_level` (`date_add`, `level`),
+    KEY `idx_order` (`id_order`),
+    KEY `idx_error_code` (`error_code`),
+    KEY `idx_source` (`source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `PREFIX_ppvenipak_terminal` (

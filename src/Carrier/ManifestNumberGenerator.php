@@ -15,10 +15,20 @@ class ManifestNumberGenerator
      *
      * Format: {API_ID}{YYMMDD}{3-digit-serial}
      * Example: 07789260317001
+     *
+     * Per Venipak spec, the date portion must fall within today..today+6 days.
+     * We always use today() so that constraint is automatically satisfied.
+     * If future scheduling is ever introduced, validate the +6-day window here.
+     *
+     * The API ID is per shop, so read it for $idShop — an unscoped read in the
+     * "All shops" admin context returns empty and produces a malformed manifest
+     * number Venipak rejects.
+     *
+     * @param int|null $idShop Shop whose Venipak API ID to embed (null = context)
      */
-    public function generate(): string
+    public function generate(?int $idShop = null): string
     {
-        $apiId = trim((string) Configuration::get('PPVENIPAK_API_ID'));
+        $apiId = trim((string) Configuration::get('PPVENIPAK_API_ID', null, null, $idShop));
         $today = date('ymd');
         $json = Configuration::getGlobalValue('PPVENIPAK_MANIFEST_COUNTER');
         $data = json_decode((string) $json, true) ?: ['counter' => 0, 'date' => ''];

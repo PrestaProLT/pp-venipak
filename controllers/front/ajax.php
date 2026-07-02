@@ -31,9 +31,133 @@ class ppvenipakAjaxModuleFrontController extends ModuleFrontController
             case 'saveExtraFields':
                 $this->saveExtraFields();
                 break;
+            case 'geocode':
+                $this->geocode();
+                break;
             default:
                 $this->ajaxResponse(['error' => 'Unknown action'], 400);
         }
+    }
+
+    /**
+     * Resolve a country + postcode to lat/lng via OpenStreetMap Nominatim.
+     *
+     * Browser fetch can't override the User-Agent and Nominatim returns 403
+     * for generic browser UAs (their anti-abuse policy). We proxy here with
+     * a module-identifying UA so the request is accepted, then return only
+     * the coordinates the JS needs.
+     *
+     * Strategy: try the structured `country=XX&postalcode=NNNNN` query first
+     * — fast and precise when it hits — then fall back to a free-text
+     * `q=NNNNN COUNTRYNAME` search. The structured index is patchy for some
+     * countries (notably LT for residential codes like 01230) where the
+     * free-text search succeeds because it can match the postcode token
+     * inside an OSM address.
+     */
+    private function geocode(): void
+    {
+        $country = strtoupper(trim((string) Tools::getValue('country', '')));
+        $postcode = trim((string) Tools::getValue('postcode', ''));
+
+        if ($country === '' || !preg_match('/^[A-Z]{2}$/', $country)) {
+            $this->ajaxResponse(['error' => 'Country code is required.'], 400);
+        }
+
+        if ($postcode === '' || mb_strlen($postcode) < 3 || mb_strlen($postcode) > 12) {
+            $this->ajaxResponse(['error' => 'Postcode is required.'], 400);
+        }
+
+        $countryName = $this->countryName($country);
+
+        // Attempt 1: structured query.
+        $structuredUrl = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+                       . '&country=' . urlencode($country)
+                       . '&postalcode=' . urlencode($postcode);
+
+        $hit = $this->fetchNominatim($structuredUrl);
+        if ($hit !== null) {
+            $this->ajaxResponse(array_merge(['success' => true], $hit));
+        }
+
+        // Attempt 2: free-text fallback — `q=NNNNN CountryName`. Catches
+        // postcodes the structured index misses.
+        $freeTextUrl = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+                     . '&q=' . urlencode($postcode . ' ' . $countryName);
+
+        $hit = $this->fetchNominatim($freeTextUrl);
+        if ($hit !== null) {
+            $this->ajaxResponse(array_merge(['success' => true], $hit));
+        }
+
+        $this->ajaxResponse([
+            'error' => sprintf('Postcode %s not found in %s.', $postcode, $country),
+        ], 404);
+    }
+
+    /**
+     * Single Nominatim fetch with the module's User-Agent. Returns
+     * ['lat', 'lng', 'display_name'] on the first result, null when empty,
+     * and aborts the request on transport / non-2xx errors.
+     */
+    private function fetchNominatim(string $url): ?array
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 6,
+            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'User-Agent: PrestaShop-PPVenipak/' . (defined('_PS_VERSION_') ? _PS_VERSION_ : '0') . ' (+https://prestapro.lt)',
+            ],
+        ]);
+
+        $body = curl_exec($ch);
+        $http = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($body === false || $err !== '') {
+            $this->ajaxResponse(['error' => 'Geocoding service unreachable.'], 502);
+        }
+
+        if ($http < 200 || $http >= 300) {
+            $this->ajaxResponse(['error' => 'Geocoding service returned HTTP ' . $http . '.'], 502);
+        }
+
+        $decoded = json_decode((string) $body, true);
+        if (!is_array($decoded) || empty($decoded)) {
+            return null;
+        }
+
+        $first = $decoded[0];
+        $lat = isset($first['lat']) ? (float) $first['lat'] : null;
+        $lng = isset($first['lon']) ? (float) $first['lon'] : null;
+
+        if ($lat === null || $lng === null) {
+            return null;
+        }
+
+        return [
+            'lat' => $lat,
+            'lng' => $lng,
+            'display_name' => (string) ($first['display_name'] ?? ''),
+        ];
+    }
+
+    private function countryName(string $iso): string
+    {
+        // Hardcoded for Venipak markets so we don't pay for a Country DB
+        // lookup on every call. ISO is already validated by the caller.
+        $map = [
+            'LT' => 'Lithuania',
+            'LV' => 'Latvia',
+            'EE' => 'Estonia',
+            'PL' => 'Poland',
+        ];
+
+        return $map[$iso] ?? $iso;
     }
 
     /**

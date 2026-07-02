@@ -1,0 +1,90 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'warehouses',
+    page_title: is_edit ? 'Edit warehouse'|trans({}, 'Modules.Ppvenipak.Admin') : 'Add warehouse'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Sender data used on labels for shipments dispatched from this location. Country and postal code must match the rules Venipak enforces (LT/EE/PL = 5 digits, LV = 4 digits).'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+    <div class="ppv-card">
+        <div class="ppv-card__body">
+            {% if errors|length > 0 %}
+                <div class="ppv-errors">
+                    <strong>{{ 'Please fix the following:'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong>
+                    <ul>{% for err in errors %}<li>{{ err }}</li>{% endfor %}</ul>
+                </div>
+            {% endif %}
+
+            <form method="post" class="ppv-form" style="max-width: 720px;" data-ppv-loading>
+                <div class="form-group">
+                    <label for="ppv_name">{{ 'Name'|trans({}, 'Modules.Ppvenipak.Admin') }} *</label>
+                    <input type="text" id="ppv_name" name="name" maxlength="60" value="{{ data.name }}" required>
+                    <small class="text-muted">{{ 'Internal label, also printed on shipment labels (max 60 chars).'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                </div>
+
+                <div class="ppv-form-row">
+                    <div class="form-group">
+                        <label for="ppv_company_code">{{ 'Company code'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                        <input type="text" id="ppv_company_code" name="company_code" maxlength="16" value="{{ data.company_code }}">
+                        <small class="text-muted">{{ 'Required when sending to/from a company; otherwise per-shipment surcharges may apply.'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="ppv_contact">{{ 'Contact person'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                        <input type="text" id="ppv_contact" name="contact" maxlength="40" value="{{ data.contact }}">
+                    </div>
+                </div>
+
+                <div class="ppv-form-row">
+                    <div class="form-group">
+                        <label for="ppv_country">{{ 'Country'|trans({}, 'Modules.Ppvenipak.Admin') }} *</label>
+                        <select id="ppv_country" name="country_code" required>
+                            {% for cc in countries %}
+                                <option value="{{ cc }}"{% if data.country_code == cc %} selected{% endif %}>{{ cc }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ppv_zip">{{ 'Postal code'|trans({}, 'Modules.Ppvenipak.Admin') }} *</label>
+                        <input type="text" id="ppv_zip" name="zip_code" maxlength="10" value="{{ data.zip_code }}" required>
+                        <small class="text-muted">{{ 'LT/EE/PL: 5 digits, LV: 4 digits, no separators.'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ppv_city">{{ 'City'|trans({}, 'Modules.Ppvenipak.Admin') }} *</label>
+                    <input type="text" id="ppv_city" name="city" maxlength="50" value="{{ data.city }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ppv_address">{{ 'Address'|trans({}, 'Modules.Ppvenipak.Admin') }} *</label>
+                    <input type="text" id="ppv_address" name="address" maxlength="255" value="{{ data.address }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ppv_phone">{{ 'Phone'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                    <input type="text" id="ppv_phone" name="phone" maxlength="15" value="{{ data.phone }}">
+                    <small class="text-muted">{{ 'International format, e.g. +37060012345.'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 500;">
+                        <input type="checkbox" name="is_default" value="1"{% if data.is_default %} checked{% endif %} style="margin-right: 6px;">
+                        {{ 'Set as default warehouse for this shop'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                    </label>
+                    <small class="text-muted">{{ 'The default is used by orders that have no warehouse assigned. Only one default per shop.'|trans({}, 'Modules.Ppvenipak.Admin') }}</small>
+                </div>
+
+                <div class="ppv-form-actions">
+                    <button type="submit" class="btn btn-primary">{{ is_edit ? 'Save changes'|trans({}, 'Modules.Ppvenipak.Admin') : 'Create warehouse'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                    <a class="btn btn-secondary" href="{{ cancel_url }}">{{ 'Cancel'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

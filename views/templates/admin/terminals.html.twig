@@ -1,0 +1,144 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{% set page_actions %}
+    <form method="post" action="{{ sync_url }}" data-ppv-loading style="display:inline;">
+        <input type="hidden" name="country" value="ALL">
+        <button type="submit" class="btn btn-primary">{{ 'Sync all countries'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+    </form>
+{% endset %}
+
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'terminals',
+    page_title: 'Pickup points'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Browse the locker and pickup-point cache used at checkout. Sync per country to refresh from the Venipak API.'|trans({}, 'Modules.Ppvenipak.Admin'),
+    multistore_blocked: multistore_blocked,
+    page_actions: page_actions,
+}) }}
+
+{% if not multistore_blocked %}
+<div class="ppv-shell">
+
+<section class="ppv-stat-grid">
+    {% for cc, s in stats %}
+        {% set tile_modifier = '' %}
+        {% if not s.last_sync %}{% set tile_modifier = 'ppv-stat--danger' %}
+        {% elseif s.stale %}{% set tile_modifier = 'ppv-stat--warn' %}
+        {% endif %}
+        <form method="post" action="{{ sync_url }}" data-ppv-loading class="ppv-stat {{ tile_modifier }}" style="text-align: left;">
+            <input type="hidden" name="country" value="{{ cc }}">
+            <p class="ppv-stat__label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+                {{ cc }}
+            </p>
+            <p class="ppv-stat__count">{{ s.total }}</p>
+            <p class="ppv-stat__detail">
+                {% if s.last_sync %}
+                    {{ 'Last synced %date%'|trans({'%date%': s.last_sync}, 'Modules.Ppvenipak.Admin') }}
+                    {% if s.stale %} · <strong>{{ 'stale'|trans({}, 'Modules.Ppvenipak.Admin') }}</strong>{% endif %}
+                {% else %}
+                    {{ 'Never synced'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                {% endif %}
+            </p>
+            <div style="display: flex; gap: var(--ppv-space-1); margin-top: var(--ppv-space-2);">
+                <a class="btn btn-secondary btn-sm" href="{{ path('ps_ppvenipak_terminals', {country: cc}) }}" onclick="event.stopPropagation();">{{ 'View'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+                <button type="submit" class="btn btn-primary btn-sm">{{ 'Sync %cc%'|trans({'%cc%': cc}, 'Modules.Ppvenipak.Admin') }}</button>
+            </div>
+        </form>
+    {% endfor %}
+</section>
+
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ '%cc% pickup points'|trans({'%cc%': active_country}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Lockers accept 1 package per shipment; parcel shops up to 5. Use the COD filter to find points that accept cash on delivery.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body">
+        <form method="get" action="{{ index_url }}" class="ppv-filters">
+            <input type="hidden" name="_token" value="{{ app.request.query.get('_token')|default('') }}">
+            <input type="hidden" name="country" value="{{ active_country }}">
+            <div class="form-group ppv-filters__search">
+                <label>{{ 'Search (name, code, city, address, zip)'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <input type="text" name="q" value="{{ filters.q }}">
+            </div>
+            <div class="form-group">
+                <label>{{ 'Type'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select name="type">
+                    <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="shop"{% if filters.type == 'shop' %} selected{% endif %}>{{ 'Parcel shop'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="locker"{% if filters.type == 'locker' %} selected{% endif %}>{{ 'Locker'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</label>
+                <select name="cod">
+                    <option value="">{{ 'Any'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="1"{% if filters.cod == '1' %} selected{% endif %}>{{ 'Accepts COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                    <option value="0"{% if filters.cod == '0' %} selected{% endif %}>{{ 'No COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">{{ 'Filter'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+                <a class="btn btn-secondary" href="{{ path('ps_ppvenipak_terminals', {country: active_country}) }}">{{ 'Reset'|trans({}, 'Modules.Ppvenipak.Admin') }}</a>
+            </div>
+        </form>
+
+        {% if terminals|length == 0 %}
+            <div class="ppv-empty">
+                <h4 class="ppv-empty__title">{{ 'No pickup points to show'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+                <p class="ppv-empty__body">
+                    {% if filters.q or filters.type or filters.cod %}
+                        {{ 'No results match your filters. Reset filters or try another country.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                    {% else %}
+                        {{ 'Click the “Sync %cc%” button above to fetch the latest pickup points from Venipak.'|trans({'%cc%': active_country}, 'Modules.Ppvenipak.Admin') }}
+                    {% endif %}
+                </p>
+            </div>
+        {% else %}
+            <p style="color: var(--ppv-text-muted); margin: 0 0 var(--ppv-space-2);">{{ 'Showing %count% pickup points (max 500)'|trans({'%count%': terminals|length}, 'Modules.Ppvenipak.Admin') }}</p>
+            <table class="ppv-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Code'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Type'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Name'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'City'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Address'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'ZIP'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Limits'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in terminals %}
+                        <tr>
+                            <td><code>{{ t.code }}</code></td>
+                            <td>
+                                {% if t.terminal_type == 3 %}
+                                    <span class="ppv-badge ppv-badge--info">{{ 'Locker'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                {% else %}
+                                    <span class="ppv-badge ppv-badge--warn">{{ 'Shop'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ t.display_name|default(t.name) }}</td>
+                            <td>{{ t.city }}</td>
+                            <td>{{ t.address }}</td>
+                            <td>{{ t.zip }}</td>
+                            <td>
+                                {% if t.size_limit > 0 %}{{ t.size_limit }} kg{% else %}—{% endif %}
+                                {% if t.max_height > 0 or t.max_width > 0 or t.max_length > 0 %}
+                                    <br><small style="color: var(--ppv-text-muted);">{{ t.max_length }}×{{ t.max_width }}×{{ t.max_height }} m</small>
+                                {% endif %}
+                            </td>
+                            <td>{% if t.cod_enabled %}<span class="ppv-badge ppv-badge--success">{{ 'Yes'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>{% else %}—{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+{{ include('@Modules/ppvenipak/views/templates/admin/partials/_admin_menu.html.twig', {
+    active_tab: 'order_states',
+    page_title: 'Order states'|trans({}, 'Modules.Ppvenipak.Admin'),
+    page_description: 'Map each Venipak tracking status to a PrestaShop order state. When the module polls Venipak (via the order panel\'s "Refresh tracking" button or future cron), the matched PrestaShop state is applied to the order. Statuses left as "Do not change" are ignored — the order keeps whatever state it already had.'|trans({}, 'Modules.Ppvenipak.Admin'),
+}) }}
+
+<div class="ppv-shell">
+
+{# CRON setup card. The cron polls Venipak for tracking events on
+   recent shipments and applies the mapping below — without it, statuses
+   only refresh when somebody clicks "Refresh tracking" on the order page. #}
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Automatic tracking refresh (CRON)'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">
+            {{ 'Set up a cron task to call this URL on a schedule (every 30 minutes is a good default). The cron polls Venipak for every shipment that is still in transit and was placed within the last %days% days — older orders are skipped to keep API usage low. To refresh a status on an older order, open the order in PrestaShop and click "Refresh tracking" on the Venipak Shipping panel.'|trans({'%days%': cron.lookback_days}, 'Modules.Ppvenipak.Admin') }}
+        </span>
+    </div>
+    <div class="ppv-card__body">
+        <div style="display: flex; flex-direction: column; gap: var(--ppv-space-3);">
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ppv-text-muted); margin-bottom: 4px;">
+                    {{ 'Cron URL'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                </label>
+                <input type="text"
+                       readonly
+                       onclick="this.select();"
+                       value="{{ cron.url }}"
+                       style="width: 100%; padding: 8px 10px; font-family: var(--ppv-font-mono); font-size: 12px; background: var(--ppv-bg-subtle); border: 1px solid var(--ppv-border); border-radius: var(--ppv-radius-sm);">
+                <small style="color: var(--ppv-text-muted);">
+                    {{ 'Use this with any uptime / cron-as-a-service provider (EasyCron, cron-job.org, etc.).'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                </small>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ppv-text-muted); margin-bottom: 4px;">
+                    {{ 'Server crontab line (every 30 minutes)'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                </label>
+                <input type="text"
+                       readonly
+                       onclick="this.select();"
+                       value="*/30 * * * * {{ cron.command }}"
+                       style="width: 100%; padding: 8px 10px; font-family: var(--ppv-font-mono); font-size: 12px; background: var(--ppv-bg-subtle); border: 1px solid var(--ppv-border); border-radius: var(--ppv-radius-sm);">
+                <small style="color: var(--ppv-text-muted);">
+                    {{ 'Add this line to your server crontab (run "crontab -e" as the web-server user). The cron token is server-specific and treats the URL like a password — keep it private.'|trans({}, 'Modules.Ppvenipak.Admin') }}
+                </small>
+            </div>
+
+            <div style="background: var(--ppv-bg-subtle); border-left: 3px solid var(--ppv-c-info, #1f6fb2); padding: var(--ppv-space-2) var(--ppv-space-3); border-radius: var(--ppv-radius-sm); font-size: 13px;">
+                <strong>{{ 'How the lookback window works'|trans({}, 'Modules.Ppvenipak.Admin') }}:</strong>
+                {{ 'Orders placed within the last %days% days are automatically polled by the cron. Older orders are not — to refresh an older order, open it in PrestaShop and click "Refresh tracking" on the Venipak Shipping panel.'|trans({'%days%': cron.lookback_days}, 'Modules.Ppvenipak.Admin') }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="ppv-card">
+    <div class="ppv-card__header">
+        <h3 class="ppv-card__title">{{ 'Tracking status → order state'|trans({}, 'Modules.Ppvenipak.Admin') }}</h3>
+        <span class="ppv-card__help">{{ 'Pick which PrestaShop order state should be applied when each Venipak pack_status is reported. Only the codes the merchant cares about need to be mapped — the others stay "Do not change" and the module skips them.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+    </div>
+    <div class="ppv-card__body">
+        {{ form_start(form, { attr: { 'data-ppv-loading': '' } }) }}
+            <h4 class="ppv-card__title" style="margin-bottom: var(--ppv-space-2);">{{ 'Label generation'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+            {{ form_row(form.ready) }}
+            {{ form_row(form.error) }}
+
+            <h4 class="ppv-card__title" style="margin: var(--ppv-space-3) 0 var(--ppv-space-2);">{{ 'Tracking pack_status'|trans({}, 'Modules.Ppvenipak.Admin') }}</h4>
+            {{ form_row(form.at_sender) }}
+            {{ form_row(form.picked_up) }}
+            {{ form_row(form.at_terminal) }}
+            {{ form_row(form.out_for_delivery) }}
+            {{ form_row(form.at_pickup_point) }}
+            {{ form_row(form.in_transit) }}
+            {{ form_row(form.delivered) }}
+
+            <div style="margin-top: var(--ppv-space-3);">
+                <button type="submit" class="btn btn-primary">{{ 'Save mapping'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+
+</div>
+{% endblock %}
