@@ -107,11 +107,12 @@
                         <th>{{ 'ZIP'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
                         <th>{{ 'Limits'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
                         <th>{{ 'COD'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
+                        <th>{{ 'Status'|trans({}, 'Modules.Ppvenipak.Admin') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for t in terminals %}
-                        <tr>
+                        <tr{% if not t.enabled %} style="opacity:.55;"{% endif %}>
                             <td><code>{{ t.code }}</code></td>
                             <td>
                                 {% if t.terminal_type == 3 %}
@@ -131,6 +132,20 @@
                                 {% endif %}
                             </td>
                             <td>{% if t.cod_enabled %}<span class="ppv-badge ppv-badge--success">{{ 'Yes'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>{% else %}—{% endif %}</td>
+                            <td>
+                                {% if t.enabled %}
+                                    <span class="ppv-badge ppv-badge--success">{{ 'Enabled'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                {% else %}
+                                    <span class="ppv-badge ppv-badge--danger">{{ 'Disabled'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
+                                {% endif %}
+                                <form method="post" action="{{ toggle_url }}" style="display:inline; margin-left: var(--ppv-space-1);">
+                                    <input type="hidden" name="id_terminal" value="{{ t.id_ppvenipak_terminal }}">
+                                    <input type="hidden" name="country" value="{{ active_country }}">
+                                    <button type="submit" class="btn btn-sm {{ t.enabled ? 'btn-secondary' : 'btn-primary' }}">
+                                        {{ (t.enabled ? 'Disable' : 'Enable')|trans({}, 'Modules.Ppvenipak.Admin') }}
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>

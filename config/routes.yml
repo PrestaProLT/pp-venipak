@@ -232,6 +232,14 @@ ps_ppvenipak_terminals_sync:
         _legacy_controller: AdminPPVenipak
         _legacy_link: AdminPPVenipak
 
+ps_ppvenipak_terminals_toggle:
+    path: /ppvenipak/terminals/toggle
+    methods: [POST]
+    defaults:
+        _controller: 'PrestaShop\Module\PPVenipak\Controller\Admin\TerminalController::toggle'
+        _legacy_controller: AdminPPVenipak
+        _legacy_link: AdminPPVenipak
+
 # --- Warehouses ---
 
 ps_ppvenipak_warehouses:

@@ -20,7 +20,6 @@ class TerminalSync
 
     /**
      * Sync all terminals for all supported countries.
-     * Truncates existing data and inserts fresh.
      * Returns count of terminals synced.
      */
     public function syncAll(): int
@@ -36,6 +35,17 @@ class TerminalSync
 
     /**
      * Sync terminals for a single country.
+     *
+     * Incremental upsert rather than delete-and-reinsert: each terminal is
+     * inserted or, when it already exists (matched on the
+     * `terminal_id` + `country_code` unique key), updated in place. Only
+     * terminals that have disappeared from the API response are deleted. This
+     * avoids churning every row on each sync and — because the `enabled`
+     * column is deliberately left out of the UPDATE set — preserves any
+     * terminals the merchant has manually disabled.
+     *
+     * If the API returns nothing, existing rows are left untouched (a transient
+     * API failure must not wipe the cache).
      */
     public function syncCountry(string $countryCode): int
     {
@@ -53,13 +63,22 @@ class TerminalSync
 
         $db = Db::getInstance();
         $table = _DB_PREFIX_ . bqSQL(self::TABLE);
-
-        // Delete existing records for this country
-        $db->execute(
-            'DELETE FROM `' . $table . '` WHERE `country_code` = \'' . pSQL($countryCode) . '\''
-        );
-
         $now = date('Y-m-d H:i:s');
+
+        // Columns refreshed on every sync. `terminal_id` + `country_code` form
+        // the unique key and `enabled` is merchant-controlled, so none of those
+        // three appear in the ON DUPLICATE KEY UPDATE set.
+        $updateColumns = [
+            'name', 'code', 'display_name', 'address', 'city', 'zip',
+            'terminal_type', 'size_limit', 'max_height', 'max_width',
+            'max_length', 'cod_enabled', 'lat', 'lng', 'working_hours', 'date_upd',
+        ];
+        $updateClause = implode(', ', array_map(
+            static fn (string $c): string => '`' . $c . '` = VALUES(`' . $c . '`)',
+            $updateColumns
+        ));
+
+        $seenIds = [];
         $count = 0;
 
         foreach ($terminals as $terminal) {
@@ -67,34 +86,58 @@ class TerminalSync
                 continue;
             }
 
+            $terminalId = (int) $terminal['id'];
+            $seenIds[] = $terminalId;
+
             $workingHours = '';
             if (!empty($terminal['working_hours']) && is_array($terminal['working_hours'])) {
                 $encoded = json_encode($terminal['working_hours']);
                 $workingHours = $encoded !== false ? $encoded : '';
             }
 
-            $db->insert(bqSQL(self::TABLE), [
-                'terminal_id' => (int) $terminal['id'],
-                'name' => pSQL((string) ($terminal['name'] ?? '')),
-                'code' => pSQL((string) ($terminal['code'] ?? '')),
-                'display_name' => pSQL((string) ($terminal['display_name'] ?? '')),
-                'address' => pSQL((string) ($terminal['address'] ?? '')),
-                'city' => pSQL((string) ($terminal['city'] ?? '')),
-                'zip' => pSQL((string) ($terminal['zip'] ?? '')),
-                'country_code' => pSQL($countryCode),
-                'terminal_type' => (int) ($terminal['type'] ?? 1),
-                'size_limit' => (int) ($terminal['size_limit'] ?? 0),
-                'max_height' => (float) ($terminal['max_height'] ?? 0),
-                'max_width' => (float) ($terminal['max_width'] ?? 0),
-                'max_length' => (float) ($terminal['max_length'] ?? 0),
-                'cod_enabled' => (int) ($terminal['cod_enabled'] ?? 0),
-                'lat' => (float) ($terminal['lat'] ?? 0),
-                'lng' => (float) ($terminal['lng'] ?? 0),
-                'working_hours' => pSQL($workingHours),
-                'date_upd' => pSQL($now),
-            ]);
+            // pSQL-escaped values; floats render locale-independently on PHP 8.
+            $values = [
+                $terminalId,
+                '\'' . pSQL((string) ($terminal['name'] ?? '')) . '\'',
+                '\'' . pSQL((string) ($terminal['code'] ?? '')) . '\'',
+                '\'' . pSQL((string) ($terminal['display_name'] ?? '')) . '\'',
+                '\'' . pSQL((string) ($terminal['address'] ?? '')) . '\'',
+                '\'' . pSQL((string) ($terminal['city'] ?? '')) . '\'',
+                '\'' . pSQL((string) ($terminal['zip'] ?? '')) . '\'',
+                '\'' . pSQL($countryCode) . '\'',
+                (int) ($terminal['type'] ?? 1),
+                (int) ($terminal['size_limit'] ?? 0),
+                (float) ($terminal['max_height'] ?? 0),
+                (float) ($terminal['max_width'] ?? 0),
+                (float) ($terminal['max_length'] ?? 0),
+                (int) ($terminal['cod_enabled'] ?? 0),
+                (float) ($terminal['lat'] ?? 0),
+                (float) ($terminal['lng'] ?? 0),
+                '\'' . pSQL($workingHours) . '\'',
+                '\'' . pSQL($now) . '\'',
+            ];
+
+            $db->execute(
+                'INSERT INTO `' . $table . '`'
+                . ' (`terminal_id`, `name`, `code`, `display_name`, `address`, `city`, `zip`,'
+                . ' `country_code`, `terminal_type`, `size_limit`, `max_height`, `max_width`,'
+                . ' `max_length`, `cod_enabled`, `lat`, `lng`, `working_hours`, `date_upd`)'
+                . ' VALUES (' . implode(', ', $values) . ')'
+                . ' ON DUPLICATE KEY UPDATE ' . $updateClause
+            );
 
             ++$count;
+        }
+
+        // Prune terminals that are no longer returned by the API for this
+        // country (closed points), leaving everything else — including the
+        // merchant's enabled/disabled choices — intact.
+        if (!empty($seenIds)) {
+            $db->execute(
+                'DELETE FROM `' . $table . '`'
+                . ' WHERE `country_code` = \'' . pSQL($countryCode) . '\''
+                . ' AND `terminal_id` NOT IN (' . implode(',', array_map('intval', $seenIds)) . ')'
+            );
         }
 
         return $count;
@@ -109,7 +152,11 @@ class TerminalSync
         $db = Db::getInstance();
         $table = _DB_PREFIX_ . bqSQL(self::TABLE);
 
-        $sql = 'SELECT * FROM `' . $table . '` WHERE `country_code` = \'' . pSQL(strtoupper($countryCode)) . '\'';
+        // `enabled = 1` keeps merchant-disabled terminals out of the checkout
+        // list; disabled points remain in the table and admin UI, just hidden
+        // from customers.
+        $sql = 'SELECT * FROM `' . $table . '` WHERE `country_code` = \'' . pSQL(strtoupper($countryCode)) . '\''
+            . ' AND `enabled` = 1';
 
         if ($city !== null && $city !== '') {
             $sql .= ' AND `city` = \'' . pSQL($city) . '\'';

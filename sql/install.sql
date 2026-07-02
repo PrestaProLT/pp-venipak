@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS `PREFIX_ppvenipak_terminal` (
     `max_width` DECIMAL(6,3) NOT NULL DEFAULT 0,
     `max_length` DECIMAL(6,3) NOT NULL DEFAULT 0,
     `cod_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
     `lat` DECIMAL(10,7) NOT NULL,
     `lng` DECIMAL(10,7) NOT NULL,
     `working_hours` TEXT DEFAULT NULL,
