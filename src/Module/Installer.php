@@ -27,13 +27,24 @@ class Installer
 
     public function __invoke(): bool
     {
-        return $this->registerHooks()
+        $ok = $this->registerHooks()
             && $this->createTables()
             && $this->createOrderStates()
             && $this->createCarriers()
             && $this->setDefaults()
             && $this->createDefaultWarehouseFromShop()
             && $this->installCarrierOverride();
+
+        if ($ok) {
+            // The module ships Symfony admin routes/controllers. Clear the
+            // Symfony cache so those routes are compiled into the router right
+            // away — otherwise the first "Configure" click (which redirects to
+            // ps_ppvenipak_dashboard) throws RouteNotFoundException until the
+            // cache is rebuilt.
+            \Tools::clearSf2Cache();
+        }
+
+        return $ok;
     }
 
     /**

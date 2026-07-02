@@ -41,7 +41,7 @@ class PPVenipak extends AbstractPPCarrier
     {
         $this->name = 'ppvenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.0.10';
+        $this->version = '1.0.11';
         $this->author = 'PrestaPro';
         $this->author_uri = 'https://prestapro.lt/modules/ppvenipak';
         $this->need_instance = 0;
@@ -71,10 +71,23 @@ class PPVenipak extends AbstractPPCarrier
 
     public function getContent(): void
     {
-        $router = $this->get('router');
-        Tools::redirectAdmin(
-            $router->generate('ps_ppvenipak_dashboard')
-        );
+        try {
+            $router = $this->get('router');
+            Tools::redirectAdmin(
+                $router->generate('ps_ppvenipak_dashboard')
+            );
+        } catch (\Throwable $e) {
+            // The module's Symfony routes are not yet compiled into the router
+            // — this happens on a fresh install or upgrade before the Symfony
+            // cache has been rebuilt, and clicking "Configure" would otherwise
+            // throw RouteNotFoundException. Clear the cache so the routes are
+            // registered and bounce back to the module list; opening the module
+            // again lands on the dashboard.
+            Tools::clearSf2Cache();
+            Tools::redirectAdmin(
+                $this->context->link->getAdminLink('AdminModules')
+            );
+        }
     }
 
     protected function getConfigPrefix(): string
