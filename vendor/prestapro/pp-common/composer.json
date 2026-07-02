@@ -1,0 +1,23 @@
+{
+    "name": "prestapro/pp-common",
+    "description": "Shared base classes, assets, and Twig partials for PrestaPro carrier modules",
+    "type": "library",
+    "license": "AFL-3.0",
+    "authors": [
+        {
+            "name": "PrestaPro",
+            "homepage": "https://prestapro.lt"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "PrestaPro\\Common\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.1"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

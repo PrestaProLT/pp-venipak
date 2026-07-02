@@ -1,0 +1,49 @@
+{
+    "packages": [
+        {
+            "name": "prestapro/pp-common",
+            "version": "dev-main",
+            "version_normalized": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:PrestaProLT/pp-common.git",
+                "reference": "bb19fcfb7c9045a865015d64f7382b3f30a7ffda"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PrestaProLT/pp-common/zipball/bb19fcfb7c9045a865015d64f7382b3f30a7ffda",
+                "reference": "bb19fcfb7c9045a865015d64f7382b3f30a7ffda",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "time": "2026-03-16T12:37:33+00:00",
+            "default-branch": true,
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "PrestaPro\\Common\\": "src/"
+                }
+            },
+            "license": [
+                "AFL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "PrestaPro",
+                    "homepage": "https://prestapro.lt"
+                }
+            ],
+            "description": "Shared base classes, assets, and Twig partials for PrestaPro carrier modules",
+            "support": {
+                "source": "https://github.com/PrestaProLT/pp-common/tree/main",
+                "issues": "https://github.com/PrestaProLT/pp-common/issues"
+            },
+            "install-path": "../prestapro/pp-common"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}
