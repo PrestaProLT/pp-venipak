@@ -51,8 +51,8 @@ trait CheckoutHooks
      *
      * Fires from PaymentOptionsFinder::present() before the storefront
      * controller hands options to any theme template, so filtering here
-     * works identically across Hummingbird / Classic / OneLife / future
-     * themes — no JS, no theme-specific selectors, can't be bypassed by
+     * works identically across Classic, Hummingbird and any other
+     * theme — no JS, no theme-specific selectors, can't be bypassed by
      * disabling JavaScript or editing the DOM.
      *
      * Removes any payment module listed in PPVENIPAK_COD_MODULES when:
