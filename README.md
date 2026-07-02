@@ -16,8 +16,16 @@ Built for **PrestaShop 9.0+** on the shared `prestapro/pp-common` carrier base.
 - **Venipak Courier** — door‑to‑door home and office delivery.
 - **Venipak Pickup Point** — parcel lockers (*paštomatai*) and manned parcel
   shops.
+- **Localized carrier names** — set the courier and pickup‑point display names
+  **per language** (translatable in the carrier settings).
 - Automatic carrier creation, zone/group/price‑range assignment and tracking
   URL wiring on install.
+
+### Parcel tracking
+- **Integrated tracking** — pulls shipment tracking events from Venipak and maps
+  them to the corresponding PrestaShop order statuses.
+- Runs **automatically via cron**, and on demand with the **Refresh tracking**
+  button in the back‑office order panel.
 
 ### Checkout (front office)
 - **Interactive pickup‑point selector** with an OpenStreetMap/Leaflet map,
