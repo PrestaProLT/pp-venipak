@@ -1,13 +1,13 @@
 # Changelog
 
+All notable changes to **PrestaPro — Venipak** are documented here.
+This project adheres to [Semantic Versioning](https://semver.org/) and the
+[Keep a Changelog](https://keepachangelog.com/) format.
+
 ## [1.0.17] — 2026-07-03
 
 ### Changed
 - Replaced the placeholder carrier logo with the official Venipak logo (symbol + wordmark, brand purple) from Venipak's e-commerce brand assets.
-
-All notable changes to **PrestaPro — Venipak** are documented here.
-This project adheres to [Semantic Versioning](https://semver.org/) and the
-[Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [1.0.16] — 2026-07-03
 
