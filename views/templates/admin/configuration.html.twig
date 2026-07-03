@@ -33,126 +33,13 @@
     </span>
 </div>
 
-{# Migration card — import data from a previously installed Venipak module #}
-{% if legacy_modules|length > 0 %}
-    {% for legacy in legacy_modules %}
-        <div class="ppv-card ppv-migration" data-migrate-url="{{ migration_migrate_url }}">
-            <div class="ppv-card__header">
-                <h3 class="ppv-card__title">
-                    {{ 'Import from %name%'|trans({'%name%': legacy.display_name|default(legacy.module_name)|default('the legacy module')}, 'Modules.Ppvenipak.Admin') }}
-                    {% if legacy.version is defined %}<span class="ppv-badge ppv-badge--warn">v{{ legacy.version }}</span>{% endif %}
-                </h3>
-                <span class="ppv-card__help">{{ 'A previously installed Venipak module was detected. Copy its data into this module, then disable the old one.'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
-            </div>
-            <div class="ppv-card__body">
-                {% if legacy.preview is defined %}
-                    <p class="ppv-migration__lead">{{ 'The following will be imported:'|trans({}, 'Modules.Ppvenipak.Admin') }}</p>
-                    <div class="ppv-migration__stats">
-                        {% for table_name, table_info in legacy.preview.tables %}
-                            {% if table_info.exists %}
-                                <div class="ppv-migration__stat">
-                                    <span class="ppv-migration__stat-num">{{ table_info.rows }}</span>
-                                    <span class="ppv-migration__stat-label">{{ table_info.label }}</span>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                        {% if legacy.preview.config_keys is defined %}
-                            <div class="ppv-migration__stat">
-                                <span class="ppv-migration__stat-num">{{ legacy.preview.config_keys }}</span>
-                                <span class="ppv-migration__stat-label">{{ 'Settings'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
-                            </div>
-                        {% endif %}
-                        {% if legacy.preview.carriers is defined %}
-                            <div class="ppv-migration__stat">
-                                <span class="ppv-migration__stat-num">{{ legacy.preview.carriers|length }}</span>
-                                <span class="ppv-migration__stat-label">{{ 'Carriers'|trans({}, 'Modules.Ppvenipak.Admin') }}</span>
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% if legacy.preview.already_migrated is defined and legacy.preview.already_migrated > 0 %}
-                        <p class="ppv-migration__note">{{ '%n% orders were already imported and will be skipped.'|trans({'%n%': legacy.preview.already_migrated}, 'Modules.Ppvenipak.Admin') }}</p>
-                    {% endif %}
-                {% endif %}
-
-                <div class="ppv-migration__actions">
-                    <button type="button" class="btn btn-outline-secondary js-ppv-migrate" data-dry="1">{{ 'Preview (dry run)'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
-                    <button type="button" class="btn btn-primary js-ppv-migrate" data-dry="0">{{ 'Import now'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
-                    <form method="post" action="{{ migration_skip_url }}" style="display:inline;" data-ppv-loading>
-                        <button type="submit" class="btn btn-link">{{ 'Dismiss'|trans({}, 'Modules.Ppvenipak.Admin') }}</button>
-                    </form>
-                </div>
-
-                <div class="ppv-migration__result" hidden>
-                    <div class="ppv-migration__result-head"></div>
-                    <ul class="ppv-migration__log"></ul>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
-
-    <script>
-    (function () {
-        var CONFIRM = {{ 'Import all data from the legacy module and disable it? This cannot be undone.'|trans({}, 'Modules.Ppvenipak.Admin')|json_encode|raw }};
-        document.addEventListener('click', function (e) {
-            var btn = e.target.closest('.js-ppv-migrate');
-            if (!btn) return;
-            var card = btn.closest('.ppv-migration');
-            if (!card) return;
-
-            var dry = btn.getAttribute('data-dry') === '1';
-            if (!dry && !window.confirm(CONFIRM)) return;
-
-            var buttons = card.querySelectorAll('.js-ppv-migrate');
-            buttons.forEach(function (b) { b.disabled = true; });
-            var label = btn.textContent;
-            btn.textContent = '…';
-
-            var result = card.querySelector('.ppv-migration__result');
-            var head = card.querySelector('.ppv-migration__result-head');
-            var log = card.querySelector('.ppv-migration__log');
-
-            fetch(card.getAttribute('data-migrate-url'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: dry ? 'dry_run=1' : ''
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                buttons.forEach(function (b) { b.disabled = false; });
-                btn.textContent = label;
-                result.hidden = false;
-                head.className = 'ppv-migration__result-head ' + (data.success ? 'is-success' : 'is-error');
-                head.textContent = (dry ? '● ' : '● ') + (data.message || (data.success ? 'Done' : 'Failed'));
-                log.innerHTML = '';
-                (data.log || []).forEach(function (line) {
-                    var li = document.createElement('li');
-                    li.textContent = line;
-                    log.appendChild(li);
-                });
-                (data.errors || []).forEach(function (line) {
-                    var li = document.createElement('li');
-                    li.className = 'is-error';
-                    li.textContent = line;
-                    log.appendChild(li);
-                });
-                if (data.success && !dry) {
-                    setTimeout(function () { window.location.reload(); }, 2500);
-                }
-            })
-            .catch(function (err) {
-                buttons.forEach(function (b) { b.disabled = false; });
-                btn.textContent = label;
-                result.hidden = false;
-                head.className = 'ppv-migration__result-head is-error';
-                head.textContent = 'Request failed: ' + err.message;
-            });
-        });
-    })();
-    </script>
-{% endif %}
+{# Migration card — shared pp-common component (styled by prestapro-carrier.css) #}
+{% include '@Modules/ppvenipak/vendor/prestapro/pp-common/views/templates/admin/partials/_migration_banner.html.twig' with {
+    legacy_modules: legacy_modules,
+    translation_domain: 'Modules.Ppvenipak.Admin',
+    migration_migrate_url: migration_migrate_url,
+    migration_skip_url: migration_skip_url
+} only %}
 
 {{ form_start(configurationForm, { attr: { 'data-ppv-loading': '' } }) }}
 
