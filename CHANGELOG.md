@@ -4,6 +4,13 @@ All notable changes to **PrestaPro — Venipak** are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/) and the
 [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [1.0.14] — 2026-07-03
+
+### Changed
+- Internal: carrier-logo installation and the migration-banner UI were moved
+  into the shared `prestapro/pp-common` library (bundled `vendor/` updated), so
+  they're maintained in one place. No change in behaviour for merchants.
+
 ## [1.0.13] — 2026-07-03
 
 ### Fixed

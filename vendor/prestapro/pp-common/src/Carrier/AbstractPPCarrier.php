@@ -110,7 +110,6 @@ abstract class AbstractPPCarrier extends CarrierModule
         foreach ($this->getCarrierDefinitions() as $key => $definition) {
             $carrier = new Carrier();
             $carrier->name = $definition['name'];
-            $carrier->url = $definition['url'] ?? '';
             $carrier->active = true;
             $carrier->is_free = $definition['is_free'] ?? false;
             $carrier->shipping_handling = $definition['shipping_handling'] ?? true;
@@ -144,7 +143,37 @@ abstract class AbstractPPCarrier extends CarrierModule
             $carriers[$key] = (int) $carrier->id;
         }
 
+        $this->installCarrierLogos($carriers);
+
         return $carriers;
+    }
+
+    /**
+     * Give each newly created carrier the module's logo so it isn't rendered
+     * with PrestaShop's blank placeholder in the carrier list and at checkout.
+     *
+     * The module just needs to ship views/img/carrier_logo.png. The file is
+     * copied to img/s/{id_carrier}.jpg — PrestaShop serves that directly and
+     * copies it forward when a merchant edits the carrier (which clones it to a
+     * new id). A PNG served under a .jpg name renders fine in browsers, so any
+     * transparency in the source logo is preserved.
+     *
+     * @param array<string, int> $carrierIds
+     */
+    protected function installCarrierLogos(array $carrierIds): void
+    {
+        $logo = $this->getLocalPath() . 'views/img/carrier_logo.png';
+
+        if (!file_exists($logo) || !defined('_PS_SHIP_IMG_DIR_')) {
+            return;
+        }
+
+        foreach ($carrierIds as $idCarrier) {
+            $idCarrier = (int) $idCarrier;
+            if ($idCarrier > 0) {
+                @copy($logo, _PS_SHIP_IMG_DIR_ . $idCarrier . '.jpg');
+            }
+        }
     }
 
     /**
@@ -187,23 +216,14 @@ abstract class AbstractPPCarrier extends CarrierModule
     public function hookActionCarrierUpdate(array $params): void
     {
         $prefix = $this->getConfigPrefix();
-
-        // PrestaShop fires this with id_carrier = the OLD (soft-deleted) carrier
-        // and carrier = the freshly-inserted replacement (see
-        // AdminCarrierWizardController). Migrate our stored *_ID so it keeps
-        // pointing at the live carrier; *_ID_REF needs no update because PS
-        // preserves id_reference across the swap.
-        $oldCarrierId = (int) ($params['id_carrier'] ?? 0);
-        $newCarrierId = (int) ($params['carrier']->id ?? 0);
-
-        if ($oldCarrierId <= 0 || $newCarrierId <= 0) {
-            return;
-        }
+        $newCarrierId = (int) $params['id_carrier'];
+        $oldCarrierId = (int) ($params['carrier']->id ?? 0);
 
         foreach (array_keys($this->getCarrierDefinitions()) as $key) {
             $configKeyId = $prefix . '_' . strtoupper($key) . '_ID';
+            $storedId = (int) Configuration::get($configKeyId);
 
-            if ((int) Configuration::get($configKeyId) === $oldCarrierId) {
+            if ($storedId === $oldCarrierId) {
                 Configuration::updateValue($configKeyId, $newCarrierId);
             }
         }
@@ -219,15 +239,23 @@ abstract class AbstractPPCarrier extends CarrierModule
      */
     public function getCarrierName(int $idCarrier, int $idLang): string
     {
-        $key = $this->resolveCarrierKey($idCarrier);
+        $prefix = $this->getConfigPrefix();
 
-        if ($key !== null) {
-            $nameKey = $this->getConfigPrefix() . '_' . strtoupper($key) . '_NAME_' . $idLang;
+        foreach (array_keys($this->getCarrierDefinitions()) as $key) {
+            $configKeyId = $prefix . '_' . strtoupper($key) . '_ID';
+
+            if ((int) Configuration::get($configKeyId) !== $idCarrier) {
+                continue;
+            }
+
+            $nameKey = $prefix . '_' . strtoupper($key) . '_NAME_' . $idLang;
             $name = Configuration::get($nameKey);
 
             if (!empty($name)) {
                 return $name;
             }
+
+            break;
         }
 
         $carrier = new Carrier($idCarrier);
@@ -260,7 +288,17 @@ abstract class AbstractPPCarrier extends CarrierModule
      */
     public function isOwnCarrier(int $idCarrier): bool
     {
-        return $this->resolveCarrierKey($idCarrier) !== null;
+        $prefix = $this->getConfigPrefix();
+
+        foreach (array_keys($this->getCarrierDefinitions()) as $key) {
+            $configKeyId = $prefix . '_' . strtoupper($key) . '_ID';
+
+            if ((int) Configuration::get($configKeyId) === $idCarrier) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -268,37 +306,12 @@ abstract class AbstractPPCarrier extends CarrierModule
      */
     public function getCarrierKey(int $idCarrier): ?string
     {
-        return $this->resolveCarrierKey($idCarrier);
-    }
-
-    /**
-     * Resolve a live carrier id to one of this module's carrier keys.
-     *
-     * Matches on the stable id_reference (stored as *_ID_REF) first: PrestaShop
-     * reassigns id_carrier on every back-office carrier edit — it soft-deletes
-     * the old row and inserts a replacement — but keeps id_reference constant.
-     * Matching on the volatile *_ID goes stale after such an edit, which makes
-     * getCarrierName()/isOwnCarrier() silently miss and the checkout fall back
-     * to the raw ps_carrier.name. Falls back to *_ID for installs whose
-     * *_ID_REF was never populated.
-     */
-    private function resolveCarrierKey(int $idCarrier): ?string
-    {
-        if ($idCarrier <= 0) {
-            return null;
-        }
-
         $prefix = $this->getConfigPrefix();
 
-        $idReference = (int) Db::getInstance()->getValue(
-            'SELECT id_reference FROM ' . _DB_PREFIX_ . 'carrier WHERE id_carrier = ' . (int) $idCarrier
-        );
-
         foreach (array_keys($this->getCarrierDefinitions()) as $key) {
-            $storedRef = (int) Configuration::get($prefix . '_' . strtoupper($key) . '_ID_REF');
-            $storedId = (int) Configuration::get($prefix . '_' . strtoupper($key) . '_ID');
+            $configKeyId = $prefix . '_' . strtoupper($key) . '_ID';
 
-            if (($idReference > 0 && $storedRef === $idReference) || $storedId === $idCarrier) {
+            if ((int) Configuration::get($configKeyId) === $idCarrier) {
                 return $key;
             }
         }

@@ -1,43 +1,141 @@
+{#
+    Shared legacy-migration card for PrestaPro carrier modules.
+
+    Expects:
+      - legacy_modules         : array of detected legacy modules (each with
+                                 display_name, version, matched_case, preview{})
+      - translation_domain     : e.g. 'Modules.Ppvenipak.Admin'
+      - migration_migrate_url  : POST endpoint (accepts dry_run=1)
+      - migration_skip_url     : POST endpoint to dismiss the banner
+
+    Styling lives in views/css/prestapro-carrier.css (.prestapro-migration*),
+    loaded by AdminAssetsTrait, so no per-module CSS is required.
+#}
 {% if legacy_modules is defined and legacy_modules|length > 0 %}
 {% for legacy in legacy_modules %}
-<div class="prestapro-migration">
-    <p class="prestapro-migration__title">
-        &#9888; {{ 'Legacy module detected: "%module%" v%version%'|trans({'%module%': legacy.display_name, '%version%': legacy.version}, translation_domain) }}
-    </p>
-    <p class="prestapro-migration__details">
-        {{ 'Matched migration profile: %profile%'|trans({'%profile%': legacy.matched_case}, translation_domain) }}
-        {% if legacy.preview is defined %}
-        <br />
-        {% for table_name, table_info in legacy.preview.tables %}
-            {% if table_info.exists %}
-                &bull; {{ table_name }}: {{ table_info.rows }} {{ 'records'|trans({}, translation_domain) }}<br />
+<div class="prestapro-migration" data-migrate-url="{{ migration_migrate_url|default('') }}">
+    <div class="prestapro-migration__head">
+        <h3 class="prestapro-migration__title">
+            {{ 'Import from %name%'|trans({'%name%': legacy.display_name|default(legacy.module_name)|default('the legacy module')}, translation_domain) }}
+            {% if legacy.version is defined %}<span class="prestapro-migration__badge">v{{ legacy.version }}</span>{% endif %}
+        </h3>
+        <p class="prestapro-migration__help">
+            {{ 'A previously installed module was detected. Copy its data into this module, then disable the old one.'|trans({}, translation_domain) }}
+        </p>
+    </div>
+
+    {% if legacy.preview is defined %}
+        <p class="prestapro-migration__lead">{{ 'The following will be imported:'|trans({}, translation_domain) }}</p>
+        <div class="prestapro-migration__stats">
+            {% for table_name, table_info in legacy.preview.tables %}
+                {% if table_info.exists %}
+                    <div class="prestapro-migration__stat">
+                        <span class="prestapro-migration__stat-num">{{ table_info.rows }}</span>
+                        <span class="prestapro-migration__stat-label">{{ table_info.label|default(table_name) }}</span>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if legacy.preview.config_keys is defined %}
+                <div class="prestapro-migration__stat">
+                    <span class="prestapro-migration__stat-num">{{ legacy.preview.config_keys }}</span>
+                    <span class="prestapro-migration__stat-label">{{ 'Settings'|trans({}, translation_domain) }}</span>
+                </div>
             {% endif %}
-        {% endfor %}
-        {% if legacy.preview.config_keys is defined %}
-            &bull; {{ legacy.preview.config_keys }} {{ 'configuration keys'|trans({}, translation_domain) }}
+            {% if legacy.preview.carriers is defined %}
+                <div class="prestapro-migration__stat">
+                    <span class="prestapro-migration__stat-num">{{ legacy.preview.carriers|length }}</span>
+                    <span class="prestapro-migration__stat-label">{{ 'Carriers'|trans({}, translation_domain) }}</span>
+                </div>
+            {% endif %}
+        </div>
+        {% if legacy.preview.already_migrated is defined and legacy.preview.already_migrated > 0 %}
+            <p class="prestapro-migration__note">{{ '%n% orders were already imported and will be skipped.'|trans({'%n%': legacy.preview.already_migrated}, translation_domain) }}</p>
         {% endif %}
-        {% endif %}
-    </p>
+    {% endif %}
+
     <div class="prestapro-migration__actions">
-        <button type="button"
-                class="prestapro-migration__btn prestapro-migration__btn--secondary"
-                data-action="preview"
-                data-module="{{ legacy.module_name }}">
-            {{ 'Preview Migration'|trans({}, translation_domain) }}
+        <button type="button" class="prestapro-migration__btn prestapro-migration__btn--secondary js-prestapro-migrate" data-dry="1">
+            {{ 'Preview (dry run)'|trans({}, translation_domain) }}
         </button>
-        <button type="button"
-                class="prestapro-migration__btn prestapro-migration__btn--primary"
-                data-action="migrate"
-                data-module="{{ legacy.module_name }}">
-            {{ 'Migrate Now'|trans({}, translation_domain) }}
+        <button type="button" class="prestapro-migration__btn prestapro-migration__btn--primary js-prestapro-migrate" data-dry="0">
+            {{ 'Import now'|trans({}, translation_domain) }}
         </button>
-        <button type="button"
-                class="prestapro-migration__btn prestapro-migration__btn--secondary"
-                data-action="skip"
-                data-module="{{ legacy.module_name }}">
-            {{ 'Skip'|trans({}, translation_domain) }}
-        </button>
+        {% if migration_skip_url is defined and migration_skip_url %}
+            <form method="post" action="{{ migration_skip_url }}" style="display:inline;">
+                <button type="submit" class="prestapro-migration__btn prestapro-migration__btn--link">
+                    {{ 'Dismiss'|trans({}, translation_domain) }}
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    <div class="prestapro-migration__result" hidden>
+        <div class="prestapro-migration__result-head"></div>
+        <ul class="prestapro-migration__log"></ul>
     </div>
 </div>
 {% endfor %}
+
+<script>
+(function () {
+    var CONFIRM = {{ 'Import all data from the legacy module and disable it? This cannot be undone.'|trans({}, translation_domain)|json_encode|raw }};
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.js-prestapro-migrate');
+        if (!btn) return;
+        var card = btn.closest('.prestapro-migration');
+        if (!card) return;
+
+        var dry = btn.getAttribute('data-dry') === '1';
+        if (!dry && !window.confirm(CONFIRM)) return;
+
+        var buttons = card.querySelectorAll('.js-prestapro-migrate');
+        buttons.forEach(function (b) { b.disabled = true; });
+        var label = btn.textContent;
+        btn.textContent = '…';
+
+        var result = card.querySelector('.prestapro-migration__result');
+        var head = card.querySelector('.prestapro-migration__result-head');
+        var log = card.querySelector('.prestapro-migration__log');
+
+        fetch(card.getAttribute('data-migrate-url'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: dry ? 'dry_run=1' : ''
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            buttons.forEach(function (b) { b.disabled = false; });
+            btn.textContent = label;
+            result.hidden = false;
+            head.className = 'prestapro-migration__result-head ' + (data.success ? 'is-success' : 'is-error');
+            head.textContent = '● ' + (data.message || (data.success ? 'Done' : 'Failed'));
+            log.innerHTML = '';
+            (data.log || []).forEach(function (line) {
+                var li = document.createElement('li');
+                li.textContent = line;
+                log.appendChild(li);
+            });
+            (data.errors || []).forEach(function (line) {
+                var li = document.createElement('li');
+                li.className = 'is-error';
+                li.textContent = line;
+                log.appendChild(li);
+            });
+            if (data.success && !dry) {
+                setTimeout(function () { window.location.reload(); }, 2500);
+            }
+        })
+        .catch(function (err) {
+            buttons.forEach(function (b) { b.disabled = false; });
+            btn.textContent = label;
+            result.hidden = false;
+            head.className = 'prestapro-migration__result-head is-error';
+            head.textContent = 'Request failed: ' + err.message;
+        });
+    });
+})();
+</script>
 {% endif %}
