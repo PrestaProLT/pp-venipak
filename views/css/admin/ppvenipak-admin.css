@@ -1004,3 +1004,82 @@ body.ppv-modal-open {
     gap: var(--ppv-space-2, 8px);
     border-top: 1px solid var(--ppv-border, #e5e7eb);
 }
+
+/* -------------------------------------------------------------------------
+   Legacy migration card
+   ------------------------------------------------------------------------- */
+.ppv-migration__lead {
+    margin: 0 0 var(--ppv-space-3);
+    color: var(--ppv-text-secondary);
+}
+
+.ppv-migration__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ppv-space-3);
+    margin-bottom: var(--ppv-space-4);
+}
+
+.ppv-migration__stat {
+    min-width: 92px;
+    padding: var(--ppv-space-3);
+    background: var(--ppv-bg-subtle);
+    border: 1px solid var(--ppv-border-subtle);
+    border-radius: var(--ppv-radius-lg);
+    text-align: center;
+}
+
+.ppv-migration__stat-num {
+    display: block;
+    font-size: var(--ppv-text-xl);
+    font-weight: 700;
+    color: var(--ppv-text-primary);
+    line-height: 1.1;
+}
+
+.ppv-migration__stat-label {
+    display: block;
+    font-size: var(--ppv-text-sm);
+    color: var(--ppv-text-muted);
+    margin-top: 2px;
+}
+
+.ppv-migration__note {
+    font-size: var(--ppv-text-sm);
+    color: var(--ppv-text-muted);
+    margin: 0 0 var(--ppv-space-3);
+}
+
+.ppv-migration__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--ppv-space-2);
+    flex-wrap: wrap;
+}
+
+.ppv-migration__result {
+    margin-top: var(--ppv-space-4);
+    padding-top: var(--ppv-space-3);
+    border-top: 1px solid var(--ppv-border-subtle);
+}
+
+.ppv-migration__result-head {
+    font-weight: 600;
+    margin-bottom: var(--ppv-space-2);
+}
+
+.ppv-migration__result-head.is-success { color: #1e7e34; }
+.ppv-migration__result-head.is-error { color: #c0392b; }
+
+.ppv-migration__log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: var(--ppv-text-sm);
+}
+
+.ppv-migration__log li { padding: 2px 0; color: var(--ppv-text-secondary); }
+.ppv-migration__log li.is-error { color: #c0392b; }

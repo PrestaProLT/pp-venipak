@@ -41,7 +41,7 @@ class PPVenipak extends AbstractPPCarrier
     {
         $this->name = 'ppvenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.0.11';
+        $this->version = '1.0.12';
         $this->author = 'PrestaPro';
         $this->author_uri = 'https://prestapro.lt/modules/ppvenipak';
         $this->need_instance = 0;

@@ -136,9 +136,33 @@ class Installer
 
     private function createCarriers(): bool
     {
-        $this->module->createCarriers();
+        $carrierIds = $this->module->createCarriers();
+        $this->installCarrierLogos(is_array($carrierIds) ? $carrierIds : []);
 
         return true;
+    }
+
+    /**
+     * Give each newly created carrier the module's logo. Without this PrestaShop
+     * renders the carrier with a blank placeholder in the carrier list and at
+     * checkout. The logo is copied to img/s/{id_carrier}.jpg — PrestaShop serves
+     * that file directly, and it copies it forward automatically when a merchant
+     * edits the carrier (which clones it to a new id).
+     */
+    private function installCarrierLogos(array $carrierIds): void
+    {
+        $logo = _PS_MODULE_DIR_ . $this->module->name . '/views/img/carrier_logo.png';
+
+        if (!file_exists($logo) || !defined('_PS_SHIP_IMG_DIR_')) {
+            return;
+        }
+
+        foreach ($carrierIds as $idCarrier) {
+            $idCarrier = (int) $idCarrier;
+            if ($idCarrier > 0) {
+                @copy($logo, _PS_SHIP_IMG_DIR_ . $idCarrier . '.jpg');
+            }
+        }
     }
 
     private function setDefaults(): bool
