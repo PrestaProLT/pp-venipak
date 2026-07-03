@@ -4,6 +4,14 @@ All notable changes to **PrestaPro — Venipak** are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/) and the
 [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [1.0.13] — 2026-07-03
+
+### Fixed
+- Pickup-point map: dragging/panning the map no longer snaps it back to the
+  initial view. The map is now framed only when the picker is first shown (and
+  on "Change"/"Find nearest"), not on every click inside the carrier row, so
+  panning is preserved.
+
 ## [1.0.12] — 2026-07-02
 
 ### Added

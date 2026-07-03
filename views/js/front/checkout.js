@@ -375,6 +375,10 @@
      */
     function refreshMapView() {
         if (!map) return;
+        // Skip while the map is hidden (collapsed carrier row or selected-terminal
+        // state): measuring a 0×0 container makes fitBounds jump to max zoom.
+        var mapEl = document.getElementById('ppvenipak-map');
+        if (!mapEl || mapEl.offsetWidth === 0 || mapEl.offsetHeight === 0) return;
         map.invalidateSize();
         if (!markers.length) return;
         var latlngs = markers.map(function (m) { return m.getLatLng(); });
@@ -565,6 +569,10 @@
             // Lazy-load Leaflet and init map
             loadLeaflet(function () {
                 initMap('ppvenipak-map', terminals);
+
+                // Frame the markers once the map exists and its container is
+                // visible. refreshMapView no-ops while hidden, so this is safe.
+                setTimeout(refreshMapView, 300);
 
                 // Bind popup select button via event delegation on map container
                 var mapEl = document.getElementById('ppvenipak-map');
@@ -900,12 +908,13 @@
                 wrapper.style.display = '';
                 wrapper.style.maxHeight = '';
                 wrapper.style.overflow = 'visible';
-                // Leaflet measures the container at init time — if the map was
-                // built while the wrapper was hidden, the tiles render at 0×0
-                // and the markers land off-screen. Remeasure AND re-frame the
-                // pins once the wrapper is visible.
-                if (map && typeof refreshMapView === 'function') {
-                    setTimeout(refreshMapView, 50);
+                // Only remeasure the map here (invalidateSize keeps the current
+                // pan/zoom). Re-framing the markers is done once when the picker
+                // is first revealed — NOT on every row click — otherwise
+                // dragging the map would keep snapping it back to the initial
+                // view.
+                if (map && typeof map.invalidateSize === 'function') {
+                    setTimeout(function () { map.invalidateSize(); }, 50);
                 }
             }
         }
@@ -916,10 +925,15 @@
             radio.addEventListener('change', sync);
         }
         // Listen on the label too — clicks on the row don't always fire a
-        // `change` event in time when other handlers stop propagation.
+        // `change` event in time when other handlers stop propagation. Ignore
+        // clicks that originate inside the extra content (map drag, list, search
+        // inputs) so interacting with the picker never re-triggers the sync.
         if (!option.dataset.ppvBound) {
             option.dataset.ppvBound = '1';
-            option.addEventListener('click', function () {
+            option.addEventListener('click', function (e) {
+                if (innerContainer.contains(e.target)) {
+                    return;
+                }
                 setTimeout(sync, 0);
             });
         }
