@@ -217,11 +217,51 @@ trait CheckoutHooks
             'ppvenipak_postcode' => trim((string) $address->postcode),
             'ppvenipak_selected_terminal' => $selectedTerminal,
             'ppvenipak_carrier_id' => (int) ($params['carrier']['id'] ?? 0),
+            'ppvenipak_i18n' => json_encode($this->getFrontI18n()),
         ]);
 
         return $this->context->smarty->fetch(
             'module:ppvenipak/views/templates/hook/displayCarrierExtraContent_pickup.tpl'
         );
+    }
+
+    /**
+     * Translations for the strings that checkout.js renders on the client. The
+     * English source doubles as the lookup key AND the fallback, so the JS keeps
+     * working if a key is missing from a locale. Passed to the template as a
+     * JSON data-i18n attribute on the pickup container.
+     *
+     * @return array<string, string>
+     */
+    private function getFrontI18n(): array
+    {
+        $d = self::MODULE_SHOP_DOMAIN;
+        $keys = [
+            'No terminals found.',
+            'Loading terminals…',
+            'Failed to load terminals.',
+            'Failed to save selection.',
+            'Enter a postcode.',
+            'Terminals are still loading…',
+            'Locating…',
+            'Could not locate postcode.',
+            'Locker',
+            'Shop',
+            'Cash on Delivery available',
+            'No Cash on Delivery',
+            'Select',
+            'Working hours:',
+            'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+            'Showing %count% closest to %postcode%',
+            'top match: %name%',
+        ];
+
+        $out = [];
+        foreach ($keys as $key) {
+            $out[$key] = $this->trans($key, [], $d);
+        }
+
+        return $out;
     }
 
     private function renderCourierExtraFields(array $params): string
@@ -258,7 +298,7 @@ trait CheckoutHooks
         foreach ($deliveryTypeMap as $key => $label) {
             $configKey = 'PPVENIPAK_' . strtoupper($key) . '_ENABLED';
             if (Configuration::get($configKey)) {
-                $timeOptions[$key] = $label;
+                $timeOptions[$key] = $this->trans($label, [], self::MODULE_SHOP_DOMAIN);
             }
         }
 

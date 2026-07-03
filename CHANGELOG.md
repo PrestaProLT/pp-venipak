@@ -4,6 +4,15 @@ All notable changes to **PrestaPro — Venipak** are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/) and the
 [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [1.0.16] — 2026-07-03
+
+### Added
+- **Lithuanian, Latvian and Estonian translations** for the full checkout
+  front end: template labels/buttons, the delivery-time options, and the
+  JavaScript-rendered strings (map/list statuses, Locker/Shop badges, error
+  messages) — the JS now receives its wording from the server via a data-i18n
+  dictionary. Catalogs live in `translations/<locale>/ModulesPpvenipakShop.<locale>.xlf`.
+
 ## [1.0.15] — 2026-07-03
 
 ### Changed

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file original="ModulesPpvenipakShop.xlf" source-language="en-US" target-language="lt-LT" datatype="plaintext">
+    <body>
+      <trans-unit id="8bcdc441379cbf584638b0589a3f9adb">
+        <source>Postcode</source>
+        <target>Pašto kodas</target>
+      </trans-unit>
+      <trans-unit id="051ff614a2c41859c17760d1bc23e126">
+        <source>Find nearest</source>
+        <target>Rasti artimiausią</target>
+      </trans-unit>
+      <trans-unit id="f4ec5f57bd4d31b803312d873be40da9">
+        <source>Change</source>
+        <target>Keisti</target>
+      </trans-unit>
+      <trans-unit id="9739a2a46bf21af32ee6d7ae49636831">
+        <source>Filter terminals — name, city or address</source>
+        <target>Filtruoti terminalus — pavadinimas, miestas ar adresas</target>
+      </trans-unit>
+      <trans-unit id="d676596f71fd0f73f735da4bb4225151">
+        <source>Door code</source>
+        <target>Durų kodas</target>
+      </trans-unit>
+      <trans-unit id="b88e92e7db18eea208d607b366aa8670">
+        <source>Cabinet number</source>
+        <target>Spintelės numeris</target>
+      </trans-unit>
+      <trans-unit id="68a70b13eeaae831939e8bd8a20c75bb">
+        <source>Warehouse number</source>
+        <target>Sandėlio numeris</target>
+      </trans-unit>
+      <trans-unit id="34883f7138d1c1f50fc72423873f5390">
+        <source>Preferred delivery time</source>
+        <target>Pageidaujamas pristatymo laikas</target>
+      </trans-unit>
+      <trans-unit id="18453227bd9fe261bbd743d79528f62d">
+        <source>Call before delivery</source>
+        <target>Skambinti prieš pristatymą</target>
+      </trans-unit>
+      <trans-unit id="4c1f76824b0d7333652d5f64a3e07ef5">
+        <source>Anytime</source>
+        <target>Bet kada</target>
+      </trans-unit>
+      <trans-unit id="6e2841936de8e47a8fcea0e8e5ffb848">
+        <source>Until 10:00</source>
+        <target>Iki 10:00</target>
+      </trans-unit>
+      <trans-unit id="06a1f54b0c496f73c5815fce12e8bd1c">
+        <source>Until 12:00</source>
+        <target>Iki 12:00</target>
+      </trans-unit>
+      <trans-unit id="87284388c07f03c8a3448ee4195cffb8">
+        <source>8:00 – 14:00</source>
+        <target>8:00 – 14:00</target>
+      </trans-unit>
+      <trans-unit id="66b5a66dc0c715be0eb565876f3d33d4">
+        <source>14:00 – 17:00</source>
+        <target>14:00 – 17:00</target>
+      </trans-unit>
+      <trans-unit id="91b2159be192774d5b482b41b9646b06">
+        <source>18:00 – 22:00</source>
+        <target>18:00 – 22:00</target>
+      </trans-unit>
+      <trans-unit id="d051d9d036689c7b87336c70eb5bbd90">
+        <source>Same day</source>
+        <target>Tą pačią dieną</target>
+      </trans-unit>
+      <trans-unit id="ece4ec92e8c7a4e6323a1e0d11b43479">
+        <source>Same day 17:00 – 22:00</source>
+        <target>Tą pačią dieną 17:00 – 22:00</target>
+      </trans-unit>
+      <trans-unit id="8b7051187b9191cdcdae6ed5a10e5adc">
+        <source>Saturday</source>
+        <target>Šeštadienį</target>
+      </trans-unit>
+      <trans-unit id="e5a5d5f93ba095cc7ac8a26c8267045e">
+        <source>No terminals found.</source>
+        <target>Terminalų nerasta.</target>
+      </trans-unit>
+      <trans-unit id="5d96e02e9704cd665173034d8f20074a">
+        <source>Loading terminals…</source>
+        <target>Kraunami terminalai…</target>
+      </trans-unit>
+      <trans-unit id="5d846bfcfa76fb1f96007cfa2563227f">
+        <source>Failed to load terminals.</source>
+        <target>Nepavyko įkelti terminalų.</target>
+      </trans-unit>
+      <trans-unit id="1d94976a0f40204ebb068241d4baa38b">
+        <source>Failed to save selection.</source>
+        <target>Nepavyko išsaugoti pasirinkimo.</target>
+      </trans-unit>
+      <trans-unit id="9be8b8215cdabc1bdf5141de1617208b">
+        <source>Enter a postcode.</source>
+        <target>Įveskite pašto kodą.</target>
+      </trans-unit>
+      <trans-unit id="63bcfddf4a81dd92fe301d8df87baa24">
+        <source>Terminals are still loading…</source>
+        <target>Terminalai vis dar kraunami…</target>
+      </trans-unit>
+      <trans-unit id="9c517d9d2fe857d7e221b1ce4137fa10">
+        <source>Locating…</source>
+        <target>Ieškoma…</target>
+      </trans-unit>
+      <trans-unit id="a77b2e756254f5117e49011e6676c571">
+        <source>Could not locate postcode.</source>
+        <target>Nepavyko rasti pašto kodo.</target>
+      </trans-unit>
+      <trans-unit id="b846b14f237dfcca88c1c57240dce3d3">
+        <source>Locker</source>
+        <target>Paštomatas</target>
+      </trans-unit>
+      <trans-unit id="9f82518d468b9fee614fcc92f76bb163">
+        <source>Shop</source>
+        <target>Parduotuvė</target>
+      </trans-unit>
+      <trans-unit id="f5dab1e34a3b525d3a51a48e6df9152c">
+        <source>Cash on Delivery available</source>
+        <target>Galimas atsiskaitymas grynaisiais pristatymo metu</target>
+      </trans-unit>
+      <trans-unit id="86bb15e4cf2307fb28d8e1b0d25b5549">
+        <source>No Cash on Delivery</source>
+        <target>Atsiskaitymas grynaisiais negalimas</target>
+      </trans-unit>
+      <trans-unit id="e0626222614bdee31951d84c64e5e9ff">
+        <source>Select</source>
+        <target>Pasirinkti</target>
+      </trans-unit>
+      <trans-unit id="b689ff1685e45b92f4cbff6570d96647">
+        <source>Working hours:</source>
+        <target>Darbo laikas:</target>
+      </trans-unit>
+      <trans-unit id="fd29458ae58ac32a2d8734ed90ad51ec">
+        <source>Mon</source>
+        <target>Pr</target>
+      </trans-unit>
+      <trans-unit id="2ddecde85408faf230652444db78cb72">
+        <source>Tue</source>
+        <target>An</target>
+      </trans-unit>
+      <trans-unit id="510c292b1686eb070d9e90a575f74106">
+        <source>Wed</source>
+        <target>Tr</target>
+      </trans-unit>
+      <trans-unit id="ed5e8353dfc585f4c6b3a55d1a9fc01d">
+        <source>Thu</source>
+        <target>Kt</target>
+      </trans-unit>
+      <trans-unit id="ac616f844b9a5ea5a827bf7fb99b1ad5">
+        <source>Fri</source>
+        <target>Pn</target>
+      </trans-unit>
+      <trans-unit id="13c7d2d737f81f7bf89aed9fbcd0ad55">
+        <source>Sat</source>
+        <target>Št</target>
+      </trans-unit>
+      <trans-unit id="ef6572e4cd58bb39a3f4e82fc64fe9f0">
+        <source>Sun</source>
+        <target>Sk</target>
+      </trans-unit>
+      <trans-unit id="53dcd01a3e756959190f99a809b775a4">
+        <source>Showing %count% closest to %postcode%</source>
+        <target>Rodomi %count% artimiausi pagal %postcode%</target>
+      </trans-unit>
+      <trans-unit id="115d3e7975b447c01a0b674a470a05ef">
+        <source>top match: %name%</source>
+        <target>geriausias atitikmuo: %name%</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

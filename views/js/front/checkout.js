@@ -86,6 +86,18 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /*  i18n — translations passed from the server via data-i18n           */
+    /* ------------------------------------------------------------------ */
+
+    var I18N = {};
+
+    // Look up a translated string by its English key; fall back to the key so
+    // the UI still reads correctly if a locale is missing an entry.
+    function tr(key) {
+        return (I18N && I18N[key]) || key;
+    }
+
+    /* ------------------------------------------------------------------ */
     /*  Leaflet lazy loader                                                */
     /* ------------------------------------------------------------------ */
 
@@ -164,7 +176,7 @@
      */
     function geocodePostcode(ajaxUrl, country, postcode, callback) {
         if (!postcode || postcode.length < 3) {
-            callback(new Error('Enter a postcode.'), null);
+            callback(new Error(tr('Enter a postcode.')), null);
             return;
         }
 
@@ -183,7 +195,7 @@
             .then(function (resp) {
                 var data = resp.data || {};
                 if (!resp.ok || !data.success) {
-                    callback(new Error(data.error || 'Could not locate postcode.'), null);
+                    callback(new Error(data.error || tr('Could not locate postcode.')), null);
                     return;
                 }
                 callback(null, { lat: parseFloat(data.lat), lng: parseFloat(data.lng) });
@@ -225,7 +237,7 @@
         if (!listEl) return;
 
         if (!terminals.length) {
-            listEl.innerHTML = '<div class="ppvenipak-pickup__empty">No terminals found.</div>';
+            listEl.innerHTML = '<div class="ppvenipak-pickup__empty">' + escapeHtml(tr('No terminals found.')) + '</div>';
             return;
         }
 
@@ -239,10 +251,10 @@
             var tType = parseInt(t.terminal_type, 10);
             var typeLabel, typeCls;
             if (tType === 3) {
-                typeLabel = 'Locker';
+                typeLabel = tr('Locker');
                 typeCls = 'ppvenipak-pickup__item-type--locker';
             } else {
-                typeLabel = 'Shop';
+                typeLabel = tr('Shop');
                 typeCls = 'ppvenipak-pickup__item-type--shop';
             }
 
@@ -250,8 +262,8 @@
             // so they can pick a different terminal if they planned to pay
             // cash on delivery.
             var codBadge = (parseInt(t.cod_enabled, 10) === 1)
-                ? '<span class="ppvenipak-pickup__item-cod ppvenipak-pickup__item-cod--yes" title="Cash on Delivery available">€</span>'
-                : '<span class="ppvenipak-pickup__item-cod ppvenipak-pickup__item-cod--no" title="No Cash on Delivery">€</span>';
+                ? '<span class="ppvenipak-pickup__item-cod ppvenipak-pickup__item-cod--yes" title="' + escapeHtml(tr('Cash on Delivery available')) + '">€</span>'
+                : '<span class="ppvenipak-pickup__item-cod ppvenipak-pickup__item-cod--no" title="' + escapeHtml(tr('No Cash on Delivery')) + '">€</span>';
 
             var distText = formatDistance(t._distanceKm);
             var distHtml = distText
@@ -324,7 +336,7 @@
                         for (var i = 0; i < days.length; i++) {
                             var dayKey = days[i].toLowerCase();
                             if (wh[dayKey]) {
-                                workingHours += '<br>' + days[i] + ': ' + escapeHtml(wh[dayKey]);
+                                workingHours += '<br>' + escapeHtml(tr(days[i])) + ': ' + escapeHtml(wh[dayKey]);
                             }
                         }
                     }
@@ -334,9 +346,9 @@
             var popupContent = '<strong>' + escapeHtml(t.display_name || t.name) + '</strong>'
                 + '<br>' + escapeHtml(t.address)
                 + '<br>' + escapeHtml(t.city) + ' ' + escapeHtml(t.zip)
-                + (workingHours ? '<br><br><em>Working hours:</em>' + workingHours : '')
+                + (workingHours ? '<br><br><em>' + escapeHtml(tr('Working hours:')) + '</em>' + workingHours : '')
                 + '<br><br><button type="button" class="ppvenipak-pickup__map-select-btn" data-terminal-id="'
-                + escapeHtml(String(t.terminal_id)) + '">Select</button>';
+                + escapeHtml(String(t.terminal_id)) + '">' + escapeHtml(tr('Select')) + '</button>';
 
             var marker = L.marker([lat, lng]).addTo(map);
             marker.bindPopup(popupContent);
@@ -401,7 +413,7 @@
             if (status >= 200 && status < 300 && data && data.terminals) {
                 callback(null, data.terminals);
             } else {
-                callback(data && data.error ? data.error : 'Failed to load terminals.');
+                callback(data && data.error ? data.error : tr('Failed to load terminals.'));
             }
         });
     }
@@ -424,7 +436,7 @@
             if (status >= 200 && status < 300 && data && data.success) {
                 showSelectedState(container, terminal);
             } else {
-                showError(container, data && data.error ? data.error : 'Failed to save selection.');
+                showError(container, data && data.error ? data.error : tr('Failed to save selection.'));
             }
         });
     }
@@ -519,7 +531,7 @@
     function showLoading(container) {
         var listEl = container.querySelector('.ppvenipak-pickup__list-items');
         if (listEl) {
-            listEl.innerHTML = '<div class="ppvenipak-pickup__loading">Loading terminals...</div>';
+            listEl.innerHTML = '<div class="ppvenipak-pickup__loading">' + escapeHtml(tr('Loading terminals…')) + '</div>';
         }
     }
 
@@ -531,6 +543,13 @@
         var ajaxUrl = container.getAttribute('data-ajax-url') || '';
         var country = container.getAttribute('data-country') || 'LT';
         var initialPostcode = (container.getAttribute('data-postcode') || '').trim();
+
+        // Load server-provided translations for the JS-rendered strings.
+        try {
+            I18N = JSON.parse(container.getAttribute('data-i18n') || '{}');
+        } catch (e) {
+            I18N = {};
+        }
 
         // The container itself doesn't carry the saved terminal id, but the
         // hidden submit input does — read from there so the auto-nearest
@@ -654,18 +673,18 @@
         function runNearest(autoSelectTop) {
             var pc = nearestInput ? (nearestInput.value || '').trim() : '';
             if (!pc) {
-                setNearestStatus('Enter a postcode.', 'error');
+                setNearestStatus(tr('Enter a postcode.'), 'error');
                 return;
             }
             if (!allTerminals.length) {
-                setNearestStatus('Terminals are still loading…', 'info');
+                setNearestStatus(tr('Terminals are still loading…'), 'info');
                 return;
             }
 
-            setNearestStatus('Locating…', 'info');
+            setNearestStatus(tr('Locating…'), 'info');
             geocodePostcode(ajaxUrl, country, pc, function (err, origin) {
                 if (err) {
-                    setNearestStatus(err.message || 'Could not locate postcode.', 'error');
+                    setNearestStatus(err.message || tr('Could not locate postcode.'), 'error');
                     return;
                 }
 
@@ -698,12 +717,14 @@
 
                 var topName = top && (top.display_name || top.name);
                 var topDist = top && formatDistance(top._distanceKm);
-                setNearestStatus(
-                    'Showing ' + NEAREST_TOP_N + ' closest to ' + pc
-                        + (topName ? ' — top match: ' + topName + (topDist ? ' (' + topDist + ')' : '') : '')
-                        + '.',
-                    'success'
-                );
+                var nearestMsg = tr('Showing %count% closest to %postcode%')
+                    .replace('%count%', NEAREST_TOP_N)
+                    .replace('%postcode%', pc);
+                if (topName) {
+                    var topLabel = topName + (topDist ? ' (' + topDist + ')' : '');
+                    nearestMsg += ' — ' + tr('top match: %name%').replace('%name%', topLabel);
+                }
+                setNearestStatus(nearestMsg + '.', 'success');
 
                 // Auto-commit the top match on the auto-init path — only when
                 // the cart had no prior terminal selection AND the customer

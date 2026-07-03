@@ -2,7 +2,8 @@
      data-ajax-url="{$ppvenipak_ajax_url}"
      data-country="{$ppvenipak_country_code}"
      data-postcode="{$ppvenipak_postcode|escape:'html':'UTF-8'}"
-     data-carrier-id="{$ppvenipak_carrier_id}">
+     data-carrier-id="{$ppvenipak_carrier_id}"
+     data-i18n="{$ppvenipak_i18n|escape:'html':'UTF-8'}">
 
     {* Top toolbar — nearest-by-postcode only. Free-text filtering lives in
        the list search bar above the scrollable list, where it's right next
